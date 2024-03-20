@@ -16,6 +16,7 @@
 		
 		Returns the values to complete for.service names.
 	#>
+	[OutputType([System.Management.Automation.CompletionResult])]
 	[CmdletBinding()]
 	param (
 		$ArgumentList
