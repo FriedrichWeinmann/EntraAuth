@@ -39,6 +39,12 @@
 		Provide the full path to the executable.
 		The browser must accept the url to open as its only parameter.
 		Defaults to your default browser.
+
+	.PARAMETER BrowserMode
+		How the browser used for authentication is selected.
+		Options:
+		+ Auto (default): Automatically use the default browser.
+		+ PrintLink: The link to open is printed on console and user selects which browser to paste it into (must be used on the same machine)
 	
 	.PARAMETER NoReconnect
 		Disables automatic reconnection.
@@ -49,6 +55,7 @@
 	
 		Connects to the specified tenant using the specified client, prompting the user to authorize via Browser.
 	#>
+	[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", "")]
 	[CmdletBinding()]
 	param (
 		[Parameter(Mandatory = $true)]
@@ -75,6 +82,11 @@
 
 		[string]
 		$Browser,
+
+		[Parameter(ParameterSetName = 'Browser')]
+		[ValidateSet('Auto', 'PrintLink')]
+		[string]
+		$BrowserMode = 'Auto',
 
 		[switch]
 		$NoReconnect
@@ -108,7 +120,7 @@
 			$pair.Key, ([System.Web.HttpUtility]::UrlEncode($pair.Value)) -join '='
 		}
 		$uriFinal = $uri + ($paramStrings -join '&')
-		Write-PSFMessage -Level Verbose -String 'Connect-ServiceBrowser.AuthorizeUri' -StringValues $uriFinal
+		Write-Verbose "Authorize Uri: $uriFinal"
 
 		$redirectTo = 'https://raw.githubusercontent.com/FriedrichWeinmann/MiniGraph/master/nothing-to-see-here.txt'
 		if ((Get-Random -Minimum 10 -Maximum 99) -eq 66) {
@@ -121,9 +133,19 @@
 		try { $http.Start() }
 		catch { Invoke-TerminatingException -Cmdlet $PSCmdlet -Message "Failed to create local http listener on port $LocalPort. Use -LocalPort to select a different port. $_" -Category OpenError }
 
-		# Execute in default browser
-		if ($Browser) { & $Browser $uriFinal }
-		else { Start-Process $uriFinal }
+		switch ($BrowserMode) {
+			Auto {
+				# Execute in default browser
+				if ($Browser) { & $Browser $uriFinal }
+				else { Start-Process $uriFinal }
+			}
+			PrintLink {
+				Write-Host @"
+Ready to authenticate. Paste the following link into the browser of your choice on the local computer:
+$uriFinal
+"@
+			}
+		}
 
 		# Get Result
 		$task = $http.GetContextAsync()

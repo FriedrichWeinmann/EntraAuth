@@ -32,6 +32,12 @@ Some common services come preconfigured (e.g. Graph, GraphBeta or the Security A
 
 > Note for module developers: There is a dedicated chapter at the bottom with important advice.
 
+## Preparing to Authenticate
+
+For those new to connecting to and executing against APIs that require Entra authentication, we have prepared a guide, explaining the different authentication options, which to chose when and what you need to do to prepare outside of the code.
+
+> [Guide to Authentication](docs/overview.md)
+
 ## Connect
 
 To connect you always need a ClientID and a TenantID for the App Registration you are using for logon.
@@ -45,6 +51,7 @@ Depending on how you want to authenticate, this App Registration may need some c
 Example connect calls for each flow:
 
 ```powershell
+# Example values, fill in the appropriate ones from your App Registration
 $ClientID = 'd6a3ffb9-6217-40d6-bfb2-f5769b65970a'
 $TenantID = 'a948c2b3-8eb2-498a-9108-c32aeeaa0f97'
 

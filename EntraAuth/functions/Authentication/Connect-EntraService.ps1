@@ -21,6 +21,12 @@
 		Use an interactive logon in your default browser.
 		This is the default logon experience.
 
+	.PARAMETER BrowserMode
+		How the browser used for authentication is selected.
+		Options:
+		+ Auto (default): Automatically use the default browser.
+		+ PrintLink: The link to open is printed on console and user selects which browser to paste it into (must be used on the same machine)
+
 	.PARAMETER DeviceCode
 		Use the Device Code delegate authentication flow.
 		This will prompt the user to complete login via browser.
@@ -73,6 +79,13 @@
 		The base url for requests to the service connecting to.
 		Overrides the default service url configured with the service settings.
 
+	.PARAMETER Resource
+		The resource to authenticate to.
+		Used to authenticate to a service without requiring a full service configuration.
+		Automatically implies PassThru.
+		This token is not registered as a service and cannot be implicitly  used by Invoke-EntraRequest.
+		Also provide the "-ServiceUrl" parameter, if you later want to use this token explicitly in Invoke-EntraRequest.
+
 	.PARAMETER MakeDefault
 		Makes this service the new default service for all subsequent Connect-EntraService & Invoke-EntraRequest calls.
 
@@ -118,6 +131,11 @@
 		[switch]
 		$Browser,
 
+		[Parameter(ParameterSetName = 'Browser')]
+		[ValidateSet('Auto', 'PrintLink')]
+		[string]
+		$BrowserMode = 'Auto',
+
 		[Parameter(ParameterSetName = 'DeviceCode')]
 		[switch]
 		$DeviceCode,
@@ -158,15 +176,28 @@
 		[string]
 		$ServiceUrl,
 
+		[string]
+		$Resource,
+
 		[switch]
 		$MakeDefault,
 
 		[switch]
 		$PassThru
 	)
+	begin {
+		$noRegister = $PSBoundParameters.Keys -notcontains 'Resource'
+		$doPassThru = $PassThru -or $Resource
+	}
 	process {
 		foreach ($serviceName in $Service) {
-			$serviceObject = Get-EntraService -Name $serviceName
+			$serviceObject = $null
+			if (-not $Resource) {
+				$serviceObject = Get-EntraService -Name $serviceName
+			}
+			else {
+				$serviceName = '<custom>'
+			}
 
 			$commonParam = @{
 				ClientID = $ClientID
@@ -174,7 +205,8 @@
 				Resource = $serviceObject.Resource
 			}
 			$effectiveServiceUrl = $ServiceUrl
-			if (-not $ServiceUrl) { $effectiveServiceUrl = $serviceObject.ServiceUrl }
+			if (-not $ServiceUrl -and $serviceObject) { $effectiveServiceUrl = $serviceObject.ServiceUrl }
+			if ($Resource) { $commonParam.Resource = $Resource }
 			
 			#region Connection
 			switch ($PSCmdlet.ParameterSetName) {
@@ -184,7 +216,7 @@
 					if (-not $Scopes) { $scopesToUse = $serviceObject.DefaultScopes }
 
 					Write-Verbose "[$serviceName] Connecting via Browser ($($scopesToUse -join ', '))"
-					try { $result = Connect-ServiceBrowser @commonParam -SelectAccount -Scopes $scopesToUse -NoReconnect:$($serviceObject.NoRefresh) -ErrorAction Stop }
+					try { $result = Connect-ServiceBrowser @commonParam -SelectAccount -Scopes $scopesToUse -NoReconnect:$($serviceObject.NoRefresh) -BrowserMode $BrowserMode -ErrorAction Stop }
 					catch {
 						Write-Warning "[$serviceName] Failed to connect: $_"
 						$PSCmdlet.ThrowTerminatingError($_)
@@ -193,7 +225,7 @@
 					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $effectiveServiceUrl, $false)
 					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
 					$token.SetTokenMetadata($result)
-					$script:_EntraTokens[$serviceName] = $token
+					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
 					Write-Verbose "[$serviceName] Connected via Browser ($($token.Scopes -join ', '))"
 				}
 				#endregion Browser
@@ -213,7 +245,7 @@
 					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $effectiveServiceUrl, $true)
 					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
 					$token.SetTokenMetadata($result)
-					$script:_EntraTokens[$serviceName] = $token
+					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
 					Write-Verbose "[$serviceName] Connected via DeviceCode ($($token.Scopes -join ', '))"
 				}
 				#endregion DeviceCode
@@ -230,7 +262,7 @@
 					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $Credential, $effectiveServiceUrl)
 					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
 					$token.SetTokenMetadata($result)
-					$script:_EntraTokens[$serviceName] = $token
+					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
 					Write-Verbose "[$serviceName] Connected via Credential ($($token.Scopes -join ', '))"
 				}
 				#endregion ROPC
@@ -247,7 +279,7 @@
 					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $ClientSecret, $effectiveServiceUrl)
 					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
 					$token.SetTokenMetadata($result)
-					$script:_EntraTokens[$serviceName] = $token
+					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
 					Write-Verbose "[$serviceName] Connected via AppSecret ($($token.Scopes -join ', '))"
 				}
 				#endregion AppSecret
@@ -269,17 +301,17 @@
 					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $certificateObject, $effectiveServiceUrl)
 					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
 					$token.SetTokenMetadata($result)
-					$script:_EntraTokens[$serviceName] = $token
+					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
 					Write-Verbose "[$serviceName] Connected via Certificate ($($token.Scopes -join ', '))"
 				}
 				#endregion AppCertificate
 			}
 			#endregion Connection
 
-			if ($MakeDefault) {
+			if ($MakeDefault -and -not $Resource) {
 				$script:_DefaultService = $serviceName
 			}
-			if ($PassThru) { $token }
+			if ($doPassThru) { $token }
 		}
 	}
 }
