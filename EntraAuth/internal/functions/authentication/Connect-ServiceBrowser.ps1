@@ -55,6 +55,7 @@
 	
 		Connects to the specified tenant using the specified client, prompting the user to authorize via Browser.
 	#>
+	[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", "")]
 	[CmdletBinding()]
 	param (
 		[Parameter(Mandatory = $true)]
