@@ -79,9 +79,13 @@ The two main options are ...
 + Browser Logon (Authorization Code Flow)
 + Device Code Logon
 
+In both cases you log in via a browser window.
+The main difference between the two is that Browser Logon is more comfortable to use and must happen on the same computer where our code runs.
+Device Code Logon means your code sends the request, but the actual logon in the Browser can happen on any computer.
+
 If the computer executing the code has a user interface and a browser, then the former option (Browser Logon) is always the preferred option.
 Device Code - in which you execute the authentication independent of the connecting computer - requires you to loosen security requirements and is more vulnerable to token theft.
 
-On the other hand, if the computer executing the code has no user interface, it is still the best option available.
+On the other hand, if the computer executing the code has no user interface - just a console - Device Code is still the best option available.
 
 |[Previous: Creating an Application](creating-applications.md)|[Next: API Permissions and you](api-permissions.md)|
