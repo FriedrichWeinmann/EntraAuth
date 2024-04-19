@@ -186,7 +186,7 @@
 		$PassThru
 	)
 	begin {
-		$noRegister = $PSBoundParameters.Keys -notcontains 'Resource'
+		$doRegister = $PSBoundParameters.Keys -notcontains 'Resource'
 		$doPassThru = $PassThru -or $Resource
 	}
 	process {
