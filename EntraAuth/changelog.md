@@ -1,5 +1,9 @@
 ﻿# Changelog
 
+## 1.0.4 (2024-04-19)
+
++ Fix: Connect-EntraService - fails to register new sessions (#10)
+
 ## 1.0.3 (2024-03-24)
 
 + Upd: Connect-EntraService - added -Resource parameter to allow creating tokens without requiring a service (#7)
