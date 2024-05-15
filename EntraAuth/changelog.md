@@ -1,5 +1,10 @@
 ﻿# Changelog
 
+## 1.0.6
+
++ Upd: Invoke-EntraRequest - added -NoPaging parameter to support disabling paging.
++ Upd: Invoke-EntraRequest - added -Raw parameter to support returning unprocessed results.
+
 ## 1.0.4 (2024-04-19)
 
 + Fix: Connect-EntraService - fails to register new sessions (#10)
