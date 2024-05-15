@@ -42,6 +42,13 @@
 	.PARAMETER Token
 		A Token as created and maintained by this module.
 		If specified, it will override the -Service parameter.
+
+	.PARAMETER NoPaging
+		Do not automatically page through responses sets.
+		By default, Invoke-EntraRequest is going to keep retrieving result pages until all data has been retrieved.
+
+	.PARAMETER Raw
+		Do not process the response object and instead return the raw result returned by the API.
 	
 	.EXAMPLE
 		PS C:\> Invoke-EntraRequest -Path 'alerts' -RequiredScopes 'Alert.Read'
@@ -79,7 +86,13 @@
 		$SerializationDepth = 99,
 
 		[EntraToken]
-		$Token
+		$Token,
+
+		[switch]
+		$NoPaging,
+
+		[switch]
+		$Raw
 	)
 	
 	begin {
@@ -106,7 +119,7 @@
 			$parameters.Uri += ConvertTo-QueryString -QueryHash $Query
 		}
 
-		while ($parameters.Uri) {
+		do {
 			$parameters.Headers = $tokenObject.GetHeader() + $Header # GetHeader() automatically refreshes expried tokens
 			Write-Verbose "Executing Request: $($Method) -> $($parameters.Uri)"
 			try { $result = Invoke-RestMethod @parameters -ErrorAction Stop }
@@ -136,9 +149,10 @@
 					$PSCmdlet.ThrowTerminatingError($failure)
 				}
 			}
-			if ($result.PSObject.Properties.Where{ $_.Name -eq 'value' }) { $result.Value }
+			if (-not $Raw -and $result.PSObject.Properties.Where{ $_.Name -eq 'value' }) { $result.Value }
 			else { $result }
 			$parameters.Uri = $result.'@odata.nextLink'
 		}
+		while ($parameters.Uri -and -not $NoPaging)
 	}
 }
