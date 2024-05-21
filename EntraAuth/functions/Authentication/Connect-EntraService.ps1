@@ -70,6 +70,17 @@
 
 		Part of the Resource Owner Password Credential (ROPC) workflow.
 
+	.PARAMETER VaultName
+		Name of the Azure Key Vault from which to retrieve the certificate or client secret used for the authentication.
+		Secrets retrieved from the vault are not cached, on token expiration they will be retrieved from the Vault again.
+		In order for this flow to work, please ensure that you either have an active AzureKeyVault service connection,
+		or are connected via Connect-AzAccount.
+
+	.PARAMETER SecretName
+		Name of the secret to use from the Azure Key Vault specified through the '-VaultName' parameter.
+		In order for this flow to work, please ensure that you either have an active AzureKeyVault service connection,
+		or are connected via Connect-AzAccount.
+
 	.PARAMETER Service
 		The service to connect to.
 		Individual commands using Invoke-EntraRequest specify the service to use and thus identify the token needed.
@@ -112,6 +123,11 @@
 		PS C:\> Connect-EntraService -Service Endpoint -ClientID $clientID -TenantID $tenantID -ClientSecret $secret
 	
 		Establish a connection to Defender for Endpoint using a client secret.
+	
+	.EXAMPLE
+		PS C:\> Connect-EntraService -ClientID $clientID -TenantID $tenantID -VaultName myVault -Secretname GraphCert
+	
+		Establish a connection to the graph API, after retrieving the necessary certificate from the specified Azure Key Vault.
 #>
 	[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseDeclaredVarsMoreThanAssignments", "")]
 	[CmdletBinding(DefaultParameterSetName = 'Browser')]
