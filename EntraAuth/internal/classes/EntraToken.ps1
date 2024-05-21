@@ -26,6 +26,10 @@
 
 	# Workflow: Username & Password
 	[PSCredential]$Credential
+
+	# Workflow: Key Vault
+	[string]$VaultName
+	[string]$SecretName
 	#endregion Connection Data
 	
 	#region Constructors
@@ -63,6 +67,16 @@
 		$this.ServiceUrl = $ServiceUrl
 		if ($IsDeviceCode) { $this.Type = 'DeviceCode' }
 		else { $this.Type = 'Browser' }
+	}
+
+	EntraToken([string]$Service, [string]$ClientID, [string]$TenantID, [string]$ServiceUrl, [string]$VaultName, [string]$SecretName) {
+		$this.Service = $Service
+		$this.ClientID = $ClientID
+		$this.TenantID = $TenantID
+		$this.ServiceUrl = $ServiceUrl
+		$this.VaultName = $VaultName
+		$this.SecretName = $SecretName
+		$this.Type = 'KeyVault'
 	}
 	#endregion Constructors
 
@@ -103,9 +117,9 @@
 	[void]RenewToken()
 	{
 		$defaultParam = @{
-			ServiceUrl = $this.ServiceUrl
 			TenantID = $this.TenantID
 			ClientID = $this.ClientID
+			Resource = $this.Audience
 		}
 		switch ($this.Type) {
 			Certificate {
@@ -136,6 +150,14 @@
 				}
 
 				$result = Connect-ServiceBrowser @defaultParam -SelectAccount
+				$this.SetTokenMetadata($result)
+			}
+			KeyVault {
+				$secret = Get-VaultSecret -VaultName $this.VaultName -SecretName $this.SecretName
+				$result = switch ($secret.Type) {
+					Certificate { Connect-ServiceCertificate @defaultParam -Certificate $secret.Certificate }
+					ClientSecret { Connect-ServiceClientSecret @defaultParam -ClientSecret $secret.ClientSecret }
+				}
 				$this.SetTokenMetadata($result)
 			}
 		}

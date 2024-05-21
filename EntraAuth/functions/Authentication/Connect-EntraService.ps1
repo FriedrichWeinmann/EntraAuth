@@ -168,6 +168,14 @@
 		[PSCredential]
 		$Credential,
 
+		[Parameter(Mandatory = $true, ParameterSetName = 'KeyVault')]
+		[string]
+		$VaultName,
+
+		[Parameter(Mandatory = $true, ParameterSetName = 'KeyVault')]
+		[string]
+		$SecretName,
+
 		[ArgumentCompleter({ Get-ServiceCompletion $args })]
 		[ValidateScript({ Assert-ServiceName -Name $_ })]
 		[string[]]
@@ -305,6 +313,32 @@
 					Write-Verbose "[$serviceName] Connected via Certificate ($($token.Scopes -join ', '))"
 				}
 				#endregion AppCertificate
+			
+				#region KeyVault
+				KeyVault {
+					Write-Verbose "[$serviceName] Connecting via KeyVault"
+					try { $secret = Get-VaultSecret -VaultName $VaultName -SecretName $SecretName }
+					catch {
+						Write-Warning "[$serviceName] Failed to retrieve secret from KeyVault: $_"
+						$PSCmdlet.ThrowTerminatingError($_)
+					}
+					try {
+						$result = switch ($secret.Type) {
+							Certificate { Connect-ServiceCertificate @commonParam -Certificate $secret.Certificate -ErrorAction Stop }
+							ClientSecret { Connect-ServiceClientSecret @commonParam -ClientSecret $secret.ClientSecret -ErrorAction Stop }
+						}
+					}
+					catch {
+						Write-Warning "[$serviceName] Failed to connect: $_"
+						$PSCmdlet.ThrowTerminatingError($_)
+					}
+					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $effectiveServiceUrl, $VaultName, $SecretName)
+					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
+					$token.SetTokenMetadata($result)
+					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
+					Write-Verbose "[$serviceName] Connected via KeyVault ($($token.Scopes -join ', '))"
+				}
+				#endregion KeyVault
 			}
 			#endregion Connection
 

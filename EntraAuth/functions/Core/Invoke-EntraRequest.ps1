@@ -95,6 +95,29 @@
 		$Raw
 	)
 	
+	DynamicParam {
+		if ($Resource) { return }
+
+		$serviceObject = $script:_EntraEndpoints.$Service
+		if (-not $serviceObject) { return }
+		if ($serviceObject.Parameters.Count -lt 1) { return }
+
+		$results = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
+		foreach ($pair in $serviceObject.Parameters.GetEnumerator()) {
+			$parameterAttribute = [System.Management.Automation.ParameterAttribute]::new()
+			$parameterAttribute.ParameterSetName = '__AllParameterSets'
+			$parameterAttribute.Mandatory = $true
+			$parameterAttribute.HelpMessage = $pair.Value
+			$attributesCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
+			$attributesCollection.Add($parameterAttribute)
+			$RuntimeParam = [System.Management.Automation.RuntimeDefinedParameter]::new($pair.Key, [object], $attributesCollection)
+
+			$results.Add($pair.Key, $RuntimeParam)
+		}
+
+		$results
+	}
+
 	begin {
 		if ($Token) {
 			$tokenObject = $Token
@@ -107,11 +130,9 @@
 	process {
 		$parameters = @{
 			Method = $Method
-			Uri    = "$($tokenObject.ServiceUrl.Trim("/"))/$($Path.TrimStart('/'))"
+			Uri    = Resolve-RequestUri -TokenObject $tokenObject -ServiceObject $script:_EntraEndpoints.$($tokenObject.Service) -BoundParameters $PSBoundParameters
 		}
-		if ($Path -match '^https{0,1}://') {
-			$parameters.Uri = $Path
-		}
+		
 		if ($Body.Count -gt 0) {
 			$parameters.Body = $Body | ConvertTo-Json -Compress -Depth $SerializationDepth
 		}

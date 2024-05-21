@@ -34,6 +34,15 @@
 		This refresh token allows requesting new tokens when the current one is expiring without requiring additional
 		interactive logon actions.
 		However, not all services support this scope.
+
+	.PARAMETER Parameters
+		Extra parameters a request will require.
+		It expects a hashtable with the key being the parameter name, and the value being a description of that parameter.
+		The ServiceUrl must include a placeholder for each parameter to insert into it.
+
+		Example:
+		Parameter: @{ VaultName = 'Name of the Key Vault to execute against' }
+		ServiceUrl: https://%VAULTNAME%.vault.azure.net
 	
 	.EXAMPLE
 		PS C:\> Register-EntraService -Name Endpoint -ServiceUrl 'https://api.securitycenter.microsoft.com/api' -Resource 'https://api.securitycenter.microsoft.com'
@@ -65,9 +74,18 @@
 		$HelpUrl,
 
 		[switch]
-		$NoRefresh
+		$NoRefresh,
+
+		[hashtable]
+		$Parameters = @{}
 	)
 	process {
+		$command = Get-Command Invoke-EntraRequest
+		$badParameters = $Parameters.Keys | Where-Object { $_ -in $command.Parameters.Keys }
+		if ($badParameters) {
+			Invoke-TerminatingException -Cmdlet $PSCmdlet -Message "Cannot define parameters that collide with Invoke-EntraRequest: $($badParameters -join ', ')"
+		}
+
 		$script:_EntraEndpoints[$Name] = [PSCustomObject]@{
 			PSTypeName    = 'EntraAuth.Service'
 			Name          = $Name
@@ -77,6 +95,7 @@
 			Header        = $Header
 			HelpUrl       = $HelpUrl
 			NoRefresh     = $NoRefresh.ToBool()
+			Parameters    = $Parameters
 		}
 	}
 }
