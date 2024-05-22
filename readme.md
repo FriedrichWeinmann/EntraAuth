@@ -40,7 +40,7 @@ For those new to connecting to and executing against APIs that require Entra aut
 
 ## Connect
 
-To connect you always need a ClientID and a TenantID for the App Registration you are using for logon.
+To connect you usually need a ClientID and a TenantID for the App Registration you are using for logon.
 Depending on how you want to authenticate, this App Registration may need some configuration:
 
 + Browser (default): In the `Authentication` tab in the portal, register a 'Mobile and Desktop Applications' Platform with the 'http://localhost' redirect uri.
@@ -72,6 +72,52 @@ Connect-EntraService -ClientID $ClientID -TenantID $TenantID -ClientSecret $secr
 Connect-EntraService -ClientID $ClientID -TenantID $TenantID -Certificate $cert
 Connect-EntraService -ClientID $ClientID -TenantID $TenantID -CertificateThumbprint E1AE5158CA92CC9AA53D955217567B30E68647BD
 Connect-EntraService -ClientID $ClientID -TenantID $TenantID -CertificateName 'CN=Whatever'
+```
+
+> Azure Key Vault integration
+
+It is possible to directly read a Certificate or Client Secret from an Azure Key Vault und use it for authentication.
+In order for this to work, an already established connection to Azure KeyVault is required:
+
+```powershell
+# Option 1: Az.Accounts
+Connect-AzAccount
+
+# Option 2: EntraAuth integrated KeyVault service
+#  App Registration used must have the delegate Key Vault scope "user_impersonation"
+Connect-EntraService -ClientID $ClientID -TenantID $TenantID -Service AzureKeyVault
+```
+
+Once Key Vault access is established, this one line will retrieve the secret from Key Vault - no matter whether a certificate or a Client Secret - and complete the authentication. When connected like that, it will retrieve the secret from Key Vault again once the token expires.
+
+```powershell
+# Direct Azure KeyVault integration with Certificate or Client Secret
+Connect-EntraService -ClientID $ClientID -TenantID $TenantID -VaultName myVault -SecretName mySecret
+```
+
+> Managed Identity
+
+It is also possible to connect using a Managed Identity (for example from within an Azure Function App):
+
+```powershell
+# Connect to graph using an MSI
+Connect-EntraService -Identity
+
+# Connect to Azure Key Vault using an MSI
+Connect-EntraService -Identity -Service AzureKeyVault
+```
+
+It is also possible to connect via User-Assigned Managed Identity:
+
+```powershell
+# Using the Client ID of the User-Assigned Managed Identity
+Connect-EntraService -Identity -IdentityID $miClientID
+
+# Using the Principal ID of the User-Assigned Managed Identity
+Connect-EntraService -Identity -IdentityID $princpalID -IdentityType PrincipalID
+
+# Using the Azure Resource ID of the User-Assigned Managed Identity
+Connect-EntraService -Identity -IdentityType ResourceID -IdentityID '/subscriptions/<subscriptionid>/resourcegroups/<resourcegroupname>/providers/Microsoft.ManagedIdentity/userAssignedIdentities/<identityname>'
 ```
 
 > Default Service

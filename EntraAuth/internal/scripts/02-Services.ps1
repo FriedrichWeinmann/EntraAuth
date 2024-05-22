@@ -55,5 +55,8 @@ $azureKeyVaultCfg = @{
 	Parameters    = @{
 		VaultName = 'Name of the Key Vault to execute against'
 	}
+	Query         = @{
+		'api-version' = '7.4'
+	}
 }
 Register-EntraService @azureKeyVaultCfg

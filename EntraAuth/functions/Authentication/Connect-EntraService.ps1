@@ -81,6 +81,17 @@
 		In order for this flow to work, please ensure that you either have an active AzureKeyVault service connection,
 		or are connected via Connect-AzAccount.
 
+	.PARAMETER Identity
+		Log on as the Managed Identity of the current system.
+		Only works in environments with managed identities, such as Azure Function Apps or Runbooks.
+
+	.PARAMETER IdentityID
+		ID of the User-Managed Identity to connect as.
+		https://learn.microsoft.com/en-us/azure/app-service/overview-managed-identity
+
+	.PARAMETER IdentityType
+		Type of the User-Managed Identity.
+
 	.PARAMETER Service
 		The service to connect to.
 		Individual commands using Invoke-EntraRequest specify the service to use and thus identify the token needed.
@@ -132,14 +143,26 @@
 	[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseDeclaredVarsMoreThanAssignments", "")]
 	[CmdletBinding(DefaultParameterSetName = 'Browser')]
 	param (
-		[Parameter(Mandatory = $true)]
+		[Parameter(Mandatory = $true, ParameterSetName = 'Browser')]
+		[Parameter(Mandatory = $true, ParameterSetName = 'DeviceCode')]
+		[Parameter(Mandatory = $true, ParameterSetName = 'AppCertificate')]
+		[Parameter(Mandatory = $true, ParameterSetName = 'AppSecret')]
+		[Parameter(Mandatory = $true, ParameterSetName = 'UsernamePassword')]
+		[Parameter(Mandatory = $true, ParameterSetName = 'KeyVault')]
 		[string]
 		$ClientID,
 		
-		[Parameter(Mandatory = $true)]
+		[Parameter(Mandatory = $true, ParameterSetName = 'Browser')]
+		[Parameter(Mandatory = $true, ParameterSetName = 'DeviceCode')]
+		[Parameter(Mandatory = $true, ParameterSetName = 'AppCertificate')]
+		[Parameter(Mandatory = $true, ParameterSetName = 'AppSecret')]
+		[Parameter(Mandatory = $true, ParameterSetName = 'UsernamePassword')]
+		[Parameter(Mandatory = $true, ParameterSetName = 'KeyVault')]
 		[string]
 		$TenantID,
 		
+		[Parameter(ParameterSetName = 'Browser')]
+		[Parameter(ParameterSetName = 'DeviceCode')]
 		[string[]]
 		$Scopes,
 
@@ -152,7 +175,7 @@
 		[string]
 		$BrowserMode = 'Auto',
 
-		[Parameter(ParameterSetName = 'DeviceCode')]
+		[Parameter(Mandatory = $true, ParameterSetName = 'DeviceCode')]
 		[switch]
 		$DeviceCode,
 		
@@ -191,6 +214,19 @@
 		[Parameter(Mandatory = $true, ParameterSetName = 'KeyVault')]
 		[string]
 		$SecretName,
+
+		[Parameter(Mandatory = $true, ParameterSetName = 'Identity')]
+		[switch]
+		$Identity,
+
+		[Parameter(ParameterSetName = 'Identity')]
+		[string]
+		$IdentityID,
+
+		[Parameter(ParameterSetName = 'Identity')]
+		[ValidateSet('ClientID', 'ResourceID', 'PrincipalID')]
+		[string]
+		$IdentityType = 'ClientID',
 
 		[ArgumentCompleter({ Get-ServiceCompletion $args })]
 		[ValidateScript({ Assert-ServiceName -Name $_ })]
@@ -355,6 +391,21 @@
 					Write-Verbose "[$serviceName] Connected via KeyVault ($($token.Scopes -join ', '))"
 				}
 				#endregion KeyVault
+
+				#region Identity
+				Identity {
+					Write-Verbose "[$serviceName] Connecting via Managed Identity"
+
+					$result = Connect-ServiceIdentity -Resource $commonParam.Resource -IdentityID $IdentityID -IdentityType $IdentityType -Cmdlet $PSCmdlet
+
+					$token = [EntraToken]::new($serviceName, $effectiveServiceUrl, $IdentityID, $IdentityType)
+					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
+					$token.SetTokenMetadata($result)
+					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
+
+					Write-Verbose "[$serviceName] Connected via Managed Identity ($($token.Scopes -join ', '))"
+				}
+				#endregion Identity
 			}
 			#endregion Connection
 
