@@ -45,6 +45,6 @@
 		
 		$message = "Not connected yet! Use Connect-EntraService to establish a connection to '$Service' first."
 		if ($RequiredScopes) { $message = $message + " Scopes required for this call: $($RequiredScopes -join ', ')"}
-		Invoke-TerminatingException -Cmdlet $Cmdlet -Message  -Category ConnectionError
+		Invoke-TerminatingException -Cmdlet $Cmdlet -Message $message -Category ConnectionError
 	}
 }

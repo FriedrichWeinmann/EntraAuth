@@ -36,3 +36,24 @@ $graphBetaCfg = @{
 	HelpUrl       = 'https://developer.microsoft.com/en-us/graph/quick-start'
 }
 Register-EntraService @graphBetaCfg
+
+$azureCfg = @{
+	Name          = 'Azure'
+	ServiceUrl    = 'https://management.azure.com'
+	Resource      = 'https://management.core.windows.net/'
+	DefaultScopes = @()
+	HelpUrl       = 'https://learn.microsoft.com/en-us/rest/api/azure/?view=rest-resources-2022-12-01'
+}
+Register-EntraService @azureCfg
+
+$azureKeyVaultCfg = @{
+	Name          = 'AzureKeyVault'
+	ServiceUrl    = 'https://%VAULTNAME%.vault.azure.net'
+	Resource      = 'https://vault.azure.net'
+	DefaultScopes = @()
+	HelpUrl       = 'https://learn.microsoft.com/en-us/rest/api/keyvault/?view=rest-keyvault-secrets-7.4'
+	Parameters    = @{
+		VaultName = 'Name of the Key Vault to execute against'
+	}
+}
+Register-EntraService @azureKeyVaultCfg
