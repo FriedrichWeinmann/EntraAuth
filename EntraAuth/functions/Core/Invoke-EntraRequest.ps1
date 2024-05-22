@@ -98,7 +98,9 @@
 	DynamicParam {
 		if ($Resource) { return }
 
-		$serviceObject = $script:_EntraEndpoints.$Service
+		$actualService = $Service
+		if (-not $actualService) { $actualService = $script:_DefaultService }
+		$serviceObject = $script:_EntraEndpoints.$actualService
 		if (-not $serviceObject) { return }
 		if ($serviceObject.Parameters.Count -lt 1) { return }
 
@@ -126,6 +128,8 @@
 			Assert-EntraConnection -Service $Service -Cmdlet $PSCmdlet -RequiredScopes $RequiredScopes
 			$tokenObject = $script:_EntraTokens.$Service
 		}
+		
+		$serviceObject = $script:_EntraEndpoints.$($tokenObject.Service)
 	}
 	process {
 		$parameters = @{
@@ -136,9 +140,7 @@
 		if ($Body.Count -gt 0) {
 			$parameters.Body = $Body | ConvertTo-Json -Compress -Depth $SerializationDepth
 		}
-		if ($Query.Count -gt 0) {
-			$parameters.Uri += ConvertTo-QueryString -QueryHash $Query
-		}
+		$parameters.Uri += ConvertTo-QueryString -QueryHash $Query -DefaultQuery $serviceObject.Query
 
 		do {
 			$parameters.Headers = $tokenObject.GetHeader() + $Header # GetHeader() automatically refreshes expried tokens

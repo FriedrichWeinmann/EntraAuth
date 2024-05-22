@@ -44,10 +44,10 @@
 		#region Via EntraAuth
 		if (Get-EntraToken -Service AzureKeyVault) {
 			try {
-				$secretVersion = Invoke-EntraRequest -Service AzureKeyVault -Path "secrets/$SecretName/versions?api-version=7.4" -VaultName $VaultName -ErrorAction Stop | Where-Object {
+				$secretVersion = Invoke-EntraRequest -Service AzureKeyVault -Path "secrets/$SecretName/versions" -VaultName $VaultName -ErrorAction Stop | Where-Object {
 					$_.attributes.enabled
 				} | Sort-Object { $_.attributes.created } -Descending | Select-Object -First 1
-				$secretData = Invoke-EntraRequest -Service AzureKeyVault -Path "$($secretVersion.id)?api-version=7.4" -VaultName $VaultName -ErrorAction Stop
+				$secretData = Invoke-EntraRequest -Service AzureKeyVault -Path $secretVersion.id -VaultName $VaultName -ErrorAction Stop
 			}
 			catch {
 				Invoke-TerminatingException -Cmdlet $Cmdlet -ErrorRecord $_ -Message "Failed to retrieve secret '$SecretName' from '$VaultName'! $_"

@@ -43,6 +43,9 @@
 		Example:
 		Parameter: @{ VaultName = 'Name of the Key Vault to execute against' }
 		ServiceUrl: https://%VAULTNAME%.vault.azure.net
+
+	.PARAMETER Query
+		Extra Query Parameters to automatically include on all requests.
 	
 	.EXAMPLE
 		PS C:\> Register-EntraService -Name Endpoint -ServiceUrl 'https://api.securitycenter.microsoft.com/api' -Resource 'https://api.securitycenter.microsoft.com'
@@ -77,7 +80,10 @@
 		$NoRefresh,
 
 		[hashtable]
-		$Parameters = @{}
+		$Parameters = @{},
+
+		[Hashtable]
+		$Query = @{}
 	)
 	process {
 		$command = Get-Command Invoke-EntraRequest
@@ -96,6 +102,7 @@
 			HelpUrl       = $HelpUrl
 			NoRefresh     = $NoRefresh.ToBool()
 			Parameters    = $Parameters
+			Query         = $Query
 		}
 	}
 }

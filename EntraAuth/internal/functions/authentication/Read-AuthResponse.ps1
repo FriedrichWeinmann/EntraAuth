@@ -25,7 +25,8 @@
 			$until = (Get-Date).AddSeconds($AuthResponse.expires_in)
 		}
 		else {
-			$after = (Get-Date -Date '1970-01-01').AddSeconds($AuthResponse.not_before).ToLocalTime()
+			if ($AuthResponse.not_before)  { $after = (Get-Date -Date '1970-01-01').AddSeconds($AuthResponse.not_before).ToLocalTime() }
+			else { $after = Get-Date }
 			$until = (Get-Date -Date '1970-01-01').AddSeconds($AuthResponse.expires_on).ToLocalTime()
 		}
 		$scopes = @()

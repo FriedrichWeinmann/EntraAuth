@@ -1,5 +1,10 @@
 ﻿# Changelog
 
+## 1.2.13 (2024-05-22)
+
++ New: Supporting Managed Identity (User-Assigned or System Managed)
++ Upd: Service Configuration - can specify default query parameters.
+
 ## 1.1.11 (2024-05-21)
 
 + New: Service configurations - Added configurations for Azure & AzureKeyVault.

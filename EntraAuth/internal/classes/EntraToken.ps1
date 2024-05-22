@@ -17,6 +17,9 @@
 	[string]$TenantID
 	[string]$ServiceUrl
 	[Hashtable]$Header = @{}
+
+	[string]$IdentityID
+	[string]$IdentityType
 	
 	# Workflow: Client Secret
 	[System.Security.SecureString]$ClientSecret
@@ -77,6 +80,17 @@
 		$this.VaultName = $VaultName
 		$this.SecretName = $SecretName
 		$this.Type = 'KeyVault'
+	}
+
+	EntraToken([string]$Service, [string]$ServiceUrl, [string]$IdentityID, [string]$IdentityType) {
+		$this.Service = $Service
+		$this.ServiceUrl = $ServiceUrl
+		$this.Type = 'Identity'
+
+		if ($IdentityID) {
+			$this.IdentityID = $IdentityID
+			$this.IdentityType = $IdentityType
+		}
 	}
 	#endregion Constructors
 
@@ -158,6 +172,10 @@
 					Certificate { Connect-ServiceCertificate @defaultParam -Certificate $secret.Certificate }
 					ClientSecret { Connect-ServiceClientSecret @defaultParam -ClientSecret $secret.ClientSecret }
 				}
+				$this.SetTokenMetadata($result)
+			}
+			Identity {
+				$result = Connect-ServiceIdentity -Resource $this.Audience -IdentityID $this.IdentityID -IdentityType $this.IdentityType
 				$this.SetTokenMetadata($result)
 			}
 		}
