@@ -8,6 +8,10 @@
     
     .PARAMETER QueryHash
         Hashtable of query modifiers - usually filter conditions - to include in a web request.
+
+	.PARAMETER DefaultQuery
+		Default query parameters defined in the service configuration.
+		Default query settings are overriden by explicit query parameters.
     
     .EXAMPLE
         PS C:\> ConvertTo-QueryString -QueryHash $Query
