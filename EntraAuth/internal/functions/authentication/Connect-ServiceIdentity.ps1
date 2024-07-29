@@ -2,11 +2,11 @@
 	<#
 	.SYNOPSIS
 		Connect as the current Managed Identity.
-	
+
 	.DESCRIPTION
 		Connect as the current Managed Identity.
 		Only works from within the context of a managed environment, such as Azure Functions with enabled MSI.
-	
+
 	.PARAMETER Resource
 		The resource to get a token for.
 
@@ -15,14 +15,14 @@
 
 	.PARAMETER IdentityType
 		Type of the User-Managed Identity.
-	
+
 	.PARAMETER Cmdlet
 		The $PSCmdlet of the calling command.
 		If specified, errors are triggered in the caller's context.
-	
+
 	.EXAMPLE
 		PS C:\> Connect-ServiceIdentity -Resource 'https://vault.azure.net'
-		
+
 		Connect as the current managed identity, retrieving a token for the Azure Key Vault.
 
 	.LINK
@@ -50,9 +50,11 @@
 		# Logic for Azure VMs
 		try {
 			$vmMetadata = $null
-			$vmMetadata = Invoke-RestMethod -Headers @{Metadata = "true" } -Method GET -NoProxy -Uri "http://169.254.169.254/metadata/instance?api-version=2021-02-01" 
+			$vmMetadata = Invoke-RestMethod -Headers @{Metadata = "true" } -Method GET -NoProxy -Uri "http://169.254.169.254/metadata/instance?api-version=2021-02-01"
 		}
-		catch {}
+		catch {
+			$vmMetadata = $null
+		}
 		if ($vmMetadata.compute.azEnvironment -like "*Azure*") {
 			Write-Verbose "We are running on an Azure VM. Setting Environment Variables"
 			$isAzureVM = $true
@@ -79,11 +81,11 @@
 
 		try {
 			Write-Verbose "$url"
-			if($isAzureVM){
-				$headers = @{Metadata = 'true'}
+			if ($isAzureVM) {
+				$headers = @{Metadata = 'true' }
 			}
-			else{
-				$headers = @{'X-IDENTITY-HEADER' = $env:IDENTITY_HEADER}
+			else {
+				$headers = @{'X-IDENTITY-HEADER' = $env:IDENTITY_HEADER }
 			}
 			$authResponse = Invoke-RestMethod -Uri $url -Headers $headers -ErrorAction Stop
 		}
