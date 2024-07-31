@@ -29,7 +29,7 @@
 
 		$body = @{
 			client_id = $Token.ClientID
-			scope = $scopes -join " "
+			scope = @($scopes).ForEach{"$($Token.Audience)/$($_)"} -join " "
 			refresh_token = $Token.RefreshToken
 			grant_type = 'refresh_token'
 		}

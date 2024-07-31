@@ -1,5 +1,10 @@
 ﻿# Changelog
 
+## 1.2.15 (2024-07-31)
+
++ Fix: Refresh token may fail to authenticate to correct application
++ Fix: Managed Identity authentication fails on Azure VMs
+
 ## 1.2.13 (2024-05-22)
 
 + New: Supporting Managed Identity (User-Assigned or System Managed)
