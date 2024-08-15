@@ -18,6 +18,7 @@
 	#>
 	[CmdletBinding()]
 	param (
+		[Parameter(Mandatory = $true)]
 		$Token
 	)
 	process {
@@ -33,7 +34,7 @@
 			refresh_token = $Token.RefreshToken
 			grant_type = 'refresh_token'
 		}
-		$uri = "https://login.microsoftonline.com/$($Token.TenantID)/oauth2/v2.0/token"
+		$uri = "$($Token.AuthenticationUrl)/$($Token.TenantID)/oauth2/v2.0/token"
 		$authResponse = Invoke-RestMethod -Method Post -Uri $uri -Body $body
 		$Token.SetTokenMetadata((Read-AuthResponse -AuthResponse $authResponse))
 	}

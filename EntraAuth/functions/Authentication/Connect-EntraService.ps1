@@ -113,6 +113,14 @@
 
 	.PARAMETER PassThru
 		Return the token received for the current connection.
+
+	.PARAMETER Environment
+		What environment this service should connect to.
+		Defaults to: 'Global'
+
+	.PARAMETER AuthenticationUrl
+		The url used for the authentication requests to retrieve tokens.
+		Usually determined by service connected to or the "Environment" parameter, but may be overridden in case of need.
 	
 	.EXAMPLE
 		PS C:\> Connect-EntraService -ClientID $clientID -TenantID $tenantID
@@ -243,7 +251,13 @@
 		$MakeDefault,
 
 		[switch]
-		$PassThru
+		$PassThru,
+
+		[Environment]
+		$Environment,
+
+		[string]
+		$AuthenticationUrl
 	)
 	begin {
 		$doRegister = $PSBoundParameters.Keys -notcontains 'Resource'
@@ -259,14 +273,42 @@
 				$serviceName = '<custom>'
 			}
 
-			$commonParam = @{
-				ClientID = $ClientID
-				TenantID = $TenantID
-				Resource = $serviceObject.Resource
+			#region AuthenticationUrl
+			$authUrl = switch ("$Environment") {
+				'China' { 'https://login.chinacloudapi.cn' }
+				'USGov' { 'https://login.microsoftonline.us' }
+				'USGovDOD' { 'https://login.microsoftonline.us' }
+				default { 'https://login.microsoftonline.com' }
 			}
+			if ($AuthenticationUrl) { $authUrl = $AuthenticationUrl.TrimEnd('/') }
+
+			if (
+				$serviceObject.AuthenticationUrl -and
+				$PSBoundParameters.Keys -notcontains 'Environment' -and
+				$PSBoundParameters.Keys -notcontains 'AuthenticationUrl'
+			) {
+				$authUrl = $serviceObject.AuthenticationUrl
+			}
+			#endregion AuthenticationUrl
+
+			$commonParam = @{
+				ClientID          = $ClientID
+				TenantID          = $TenantID
+				Resource          = $serviceObject.Resource
+				AuthenticationUrl = $authUrl
+			}
+			#region Service Url
 			$effectiveServiceUrl = $ServiceUrl
 			if (-not $ServiceUrl -and $serviceObject) { $effectiveServiceUrl = $serviceObject.ServiceUrl }
 			if ($Resource) { $commonParam.Resource = $Resource }
+
+			# If users explicitly provide a service URL, who are we to override that?
+			if (-not $ServiceUrl) {
+				if ('USGovDOD' -eq $Environment) { $effectiveServiceUrl = $effectiveServiceUrl -replace '^https://graph.microsoft.com', 'https://dod-graph.microsoft.us' -replace '^https://manage.azure.com', 'https://manage.usgovcloudapi.net' }
+				elseif ($authUrl -eq 'https://login.microsoftonline.us') { $effectiveServiceUrl = $effectiveServiceUrl -replace '^https://graph.microsoft.com', 'https://graph.microsoft.us' -replace '^https://manage.azure.com', 'https://manage.usgovcloudapi.net' }
+				elseif ($authUrl -eq 'https://login.chinacloudapi.cn') { $effectiveServiceUrl = $effectiveServiceUrl -replace '^https://graph.microsoft.com', 'https://microsoftgraph.chinacloudapi.cn' -replace '^https://manage.azure.com', 'https://management.core.chinacloudapi.cn' }
+			}
+			#endregion Service Url
 			
 			#region Connection
 			switch ($PSCmdlet.ParameterSetName) {
@@ -282,7 +324,7 @@
 						$PSCmdlet.ThrowTerminatingError($_)
 					}
 					
-					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $effectiveServiceUrl, $false)
+					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $effectiveServiceUrl, $false, $authUrl)
 					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
 					$token.SetTokenMetadata($result)
 					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
@@ -302,7 +344,7 @@
 						$PSCmdlet.ThrowTerminatingError($_)
 					}
 
-					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $effectiveServiceUrl, $true)
+					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $effectiveServiceUrl, $true, $authUrl)
 					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
 					$token.SetTokenMetadata($result)
 					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
@@ -319,7 +361,7 @@
 						$PSCmdlet.ThrowTerminatingError($_)
 					}
 
-					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $Credential, $effectiveServiceUrl)
+					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $Credential, $effectiveServiceUrl, $authUrl)
 					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
 					$token.SetTokenMetadata($result)
 					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
@@ -336,7 +378,7 @@
 						$PSCmdlet.ThrowTerminatingError($_)
 					}
 
-					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $ClientSecret, $effectiveServiceUrl)
+					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $ClientSecret, $effectiveServiceUrl, $authUrl)
 					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
 					$token.SetTokenMetadata($result)
 					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
@@ -358,7 +400,7 @@
 						$PSCmdlet.ThrowTerminatingError($_)
 					}
 
-					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $certificateObject, $effectiveServiceUrl)
+					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $certificateObject, $effectiveServiceUrl, $authUrl)
 					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
 					$token.SetTokenMetadata($result)
 					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
@@ -384,7 +426,7 @@
 						Write-Warning "[$serviceName] Failed to connect: $_"
 						$PSCmdlet.ThrowTerminatingError($_)
 					}
-					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $effectiveServiceUrl, $VaultName, $SecretName)
+					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $effectiveServiceUrl, $VaultName, $SecretName, $authUrl)
 					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
 					$token.SetTokenMetadata($result)
 					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }

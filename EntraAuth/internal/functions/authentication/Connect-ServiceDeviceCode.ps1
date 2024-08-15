@@ -23,6 +23,9 @@
 	.PARAMETER NoReconnect
 		Disables automatic reconnection.
 		By default, this module will automatically try to reaquire a new token before the old one expires.
+
+	.PARAMETER AuthenticationUrl
+		The url used for the authentication requests to retrieve tokens.
 	
 	.EXAMPLE
 		PS C:\> Connect-ServiceDeviceCode -ServiceUrl $url -ClientID '<ClientID>' -TenantID '<TenantID>'
@@ -49,7 +52,11 @@
 		$Scopes,
 
 		[switch]
-		$NoReconnect
+		$NoReconnect,
+
+		[Parameter(Mandatory = $true)]
+        [string]
+		$AuthenticationUrl
 	)
 
 	if (-not $Scopes) { $Scopes = @('.default') }
@@ -60,7 +67,7 @@
 	}
 
 	try {
-		$initialResponse = Invoke-RestMethod -Method POST -Uri "https://login.microsoftonline.com/$TenantID/oauth2/v2.0/devicecode" -Body @{
+		$initialResponse = Invoke-RestMethod -Method POST -Uri "$AuthenticationUrl/$TenantID/oauth2/v2.0/devicecode" -Body @{
 			client_id = $ClientID
 			scope     = $actualScopes -join " "
 		} -ErrorAction Stop
@@ -72,7 +79,7 @@
 	Write-Host $initialResponse.message
 
 	$paramRetrieve = @{
-		Uri         = "https://login.microsoftonline.com/$TenantID/oauth2/v2.0/token"
+		Uri         = "$AuthenticationUrl/$TenantID/oauth2/v2.0/token"
 		Method      = "POST"
 		Body        = @{
 			grant_type  = "urn:ietf:params:oauth:grant-type:device_code"

@@ -16,6 +16,7 @@
 	[string]$ClientID
 	[string]$TenantID
 	[string]$ServiceUrl
+	[string]$AuthenticationUrl
 	[Hashtable]$Header = @{}
 
 	[string]$IdentityID
@@ -36,49 +37,54 @@
 	#endregion Connection Data
 	
 	#region Constructors
-	EntraToken([string]$Service, [string]$ClientID, [string]$TenantID, [Securestring]$ClientSecret, [string]$ServiceUrl) {
+	EntraToken([string]$Service, [string]$ClientID, [string]$TenantID, [Securestring]$ClientSecret, [string]$ServiceUrl, [string]$AuthenticationUrl) {
 		$this.Service = $Service
 		$this.ClientID = $ClientID
 		$this.TenantID = $TenantID
 		$this.ClientSecret = $ClientSecret
 		$this.ServiceUrl = $ServiceUrl
+		$this.AuthenticationUrl = $AuthenticationUrl
 		$this.Type = 'ClientSecret'
 	}
 	
-	EntraToken([string]$Service, [string]$ClientID, [string]$TenantID, [System.Security.Cryptography.X509Certificates.X509Certificate2]$Certificate, [string]$ServiceUrl) {
+	EntraToken([string]$Service, [string]$ClientID, [string]$TenantID, [System.Security.Cryptography.X509Certificates.X509Certificate2]$Certificate, [string]$ServiceUrl, [string]$AuthenticationUrl) {
 		$this.Service = $Service
 		$this.ClientID = $ClientID
 		$this.TenantID = $TenantID
 		$this.Certificate = $Certificate
 		$this.ServiceUrl = $ServiceUrl
+		$this.AuthenticationUrl = $AuthenticationUrl
 		$this.Type = 'Certificate'
 	}
 
-	EntraToken([string]$Service, [string]$ClientID, [string]$TenantID, [pscredential]$Credential, [string]$ServiceUrl) {
+	EntraToken([string]$Service, [string]$ClientID, [string]$TenantID, [pscredential]$Credential, [string]$ServiceUrl, [string]$AuthenticationUrl) {
 		$this.Service = $Service
 		$this.ClientID = $ClientID
 		$this.TenantID = $TenantID
 		$this.Credential = $Credential
 		$this.ServiceUrl = $ServiceUrl
+		$this.AuthenticationUrl = $AuthenticationUrl
 		$this.Type = 'UsernamePassword'
 	}
 
-	EntraToken([string]$Service, [string]$ClientID, [string]$TenantID, [string]$ServiceUrl, [bool]$IsDeviceCode) {
+	EntraToken([string]$Service, [string]$ClientID, [string]$TenantID, [string]$ServiceUrl, [bool]$IsDeviceCode, [string]$AuthenticationUrl) {
 		$this.Service = $Service
 		$this.ClientID = $ClientID
 		$this.TenantID = $TenantID
 		$this.ServiceUrl = $ServiceUrl
+		$this.AuthenticationUrl = $AuthenticationUrl
 		if ($IsDeviceCode) { $this.Type = 'DeviceCode' }
 		else { $this.Type = 'Browser' }
 	}
 
-	EntraToken([string]$Service, [string]$ClientID, [string]$TenantID, [string]$ServiceUrl, [string]$VaultName, [string]$SecretName) {
+	EntraToken([string]$Service, [string]$ClientID, [string]$TenantID, [string]$ServiceUrl, [string]$VaultName, [string]$SecretName, [string]$AuthenticationUrl) {
 		$this.Service = $Service
 		$this.ClientID = $ClientID
 		$this.TenantID = $TenantID
 		$this.ServiceUrl = $ServiceUrl
 		$this.VaultName = $VaultName
 		$this.SecretName = $SecretName
+		$this.AuthenticationUrl = $AuthenticationUrl
 		$this.Type = 'KeyVault'
 	}
 
@@ -94,11 +100,11 @@
 	}
 	#endregion Constructors
 
-    [void]SetTokenMetadata([PSObject] $AuthToken) {
-        $this.AccessToken = $AuthToken.AccessToken
-        $this.ValidAfter = $AuthToken.ValidAfter
-        $this.ValidUntil = $AuthToken.ValidUntil
-        $this.Scopes = $AuthToken.Scopes
+	[void]SetTokenMetadata([PSObject] $AuthToken) {
+		$this.AccessToken = $AuthToken.AccessToken
+		$this.ValidAfter = $AuthToken.ValidAfter
+		$this.ValidUntil = $AuthToken.ValidUntil
+		$this.Scopes = $AuthToken.Scopes
 		if ($AuthToken.RefreshToken) { $this.RefreshToken = $AuthToken.RefreshToken }
 
 		$tokenPayload = $AuthToken.AccessToken.Split(".")[1].Replace('-', '+').Replace('_', '/')
@@ -112,7 +118,7 @@
 		$this.Audience = $data.aud
 		$this.Issuer = $data.iss
 		$this.TokenData = $data
-    }
+	}
 
 	[hashtable]GetHeader() {
 		if ($this.ValidUntil -lt (Get-Date).AddMinutes(5)) {
@@ -128,12 +134,12 @@
 		return $currentHeader
 	}
 
-	[void]RenewToken()
-	{
+	[void]RenewToken() {
 		$defaultParam = @{
-			TenantID = $this.TenantID
-			ClientID = $this.ClientID
-			Resource = $this.Audience
+			TenantID         = $this.TenantID
+			ClientID         = $this.ClientID
+			Resource         = $this.Audience
+			AuthenticationUrl = $this.AuthenticationUrl
 		}
 		switch ($this.Type) {
 			Certificate {

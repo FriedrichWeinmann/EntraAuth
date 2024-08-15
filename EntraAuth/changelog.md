@@ -1,5 +1,10 @@
 ﻿# Changelog
 
+## Unreleased
+
++ Upd: Added support for Sovereign Clouds (USGov, USGovDOD, China) and custom authentication urls.
++ Fix: Certificate Logon fails on timezones after UTC
+
 ## 1.2.15 (2024-07-31)
 
 + Fix: Refresh token may fail to authenticate to correct application

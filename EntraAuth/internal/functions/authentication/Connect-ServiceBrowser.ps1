@@ -49,6 +49,9 @@
 	.PARAMETER NoReconnect
 		Disables automatic reconnection.
 		By default, this module will automatically try to reaquire a new token before the old one expires.
+
+	.PARAMETER AuthenticationUrl
+		The url used for the authentication requests to retrieve tokens.
 	
 	.EXAMPLE
 		PS C:\> Connect-ServiceBrowser -ClientID '<ClientID>' -TenantID '<TenantID>'
@@ -89,7 +92,11 @@
 		$BrowserMode = 'Auto',
 
 		[switch]
-		$NoReconnect
+		$NoReconnect,
+
+		[Parameter(Mandatory = $true)]
+        [string]
+		$AuthenticationUrl
 	)
 	process {
 		Add-Type -AssemblyName System.Web
@@ -102,7 +109,7 @@
 			$actualScopes = @($actualScopes) + 'offline_access'
 		}
 
-		$uri = "https://login.microsoftonline.com/$TenantID/oauth2/v2.0/authorize?"
+		$uri = "$AuthenticationUrl/$TenantID/oauth2/v2.0/authorize?"
 		$state = Get-Random
 		$parameters = @{
 			client_id     = $ClientID
@@ -187,7 +194,7 @@ $uriFinal
 			redirect_uri = $redirectUri
 			grant_type   = 'authorization_code'
 		}
-		$uri = "https://login.microsoftonline.com/$TenantID/oauth2/v2.0/token"
+		$uri = "$AuthenticationUrl/$TenantID/oauth2/v2.0/token"
 		try { $authResponse = Invoke-RestMethod -Method Post -Uri $uri -Body $body -ErrorAction Stop }
 		catch {
 			if ($_ -notmatch '"error":\s*"invalid_client"') { Invoke-TerminatingException -Cmdlet $PSCmdlet -ErrorRecord $_ }

@@ -46,6 +46,14 @@
 
 	.PARAMETER Query
 		Extra Query Parameters to automatically include on all requests.
+
+	.PARAMETER Environment
+		What environment this service should connect to.
+		Defaults to: 'Global'
+
+	.PARAMETER AuthenticationUrl
+		The url used for the authentication requests to retrieve tokens.
+		Usually determined by the "Environment" parameter, but may be overridden in case of need.
 	
 	.EXAMPLE
 		PS C:\> Register-EntraService -Name Endpoint -ServiceUrl 'https://api.securitycenter.microsoft.com/api' -Resource 'https://api.securitycenter.microsoft.com'
@@ -83,7 +91,13 @@
 		$Parameters = @{},
 
 		[Hashtable]
-		$Query = @{}
+		$Query = @{},
+
+		[Environment]
+		$Environment = 'Global',
+
+		[string]
+		$AuthenticationUrl
 	)
 	process {
 		$command = Get-Command Invoke-EntraRequest
@@ -91,18 +105,26 @@
 		if ($badParameters) {
 			Invoke-TerminatingException -Cmdlet $PSCmdlet -Message "Cannot define parameters that collide with Invoke-EntraRequest: $($badParameters -join ', ')"
 		}
+		$authUrl = switch ("$Environment") {
+			'China' { 'https://login.chinacloudapi.cn' }
+			'USGov' { 'https://login.microsoftonline.us' }
+			'USGovDOD' { 'https://login.microsoftonline.us' }
+			default { 'https://login.microsoftonline.com' }
+		}
+		if ($AuthenticationUrl) { $authUrl = $AuthenticationUrl.TrimEnd('/') }
 
 		$script:_EntraEndpoints[$Name] = [PSCustomObject]@{
-			PSTypeName    = 'EntraAuth.Service'
-			Name          = $Name
-			ServiceUrl    = $ServiceUrl
-			Resource      = $Resource
-			DefaultScopes = $DefaultScopes
-			Header        = $Header
-			HelpUrl       = $HelpUrl
-			NoRefresh     = $NoRefresh.ToBool()
-			Parameters    = $Parameters
-			Query         = $Query
+			PSTypeName       = 'EntraAuth.Service'
+			Name             = $Name
+			ServiceUrl       = $ServiceUrl
+			Resource         = $Resource
+			DefaultScopes    = $DefaultScopes
+			Header           = $Header
+			HelpUrl          = $HelpUrl
+			NoRefresh        = $NoRefresh.ToBool()
+			Parameters       = $Parameters
+			Query            = $Query
+			AuthenticationUrl = $authUrl
 		}
 	}
 }
