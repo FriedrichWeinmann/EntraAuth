@@ -23,6 +23,9 @@
     
     .PARAMETER Scopes
         The permission scopes to request.
+
+	.PARAMETER AuthenticationUrl
+		The url used for the authentication requests to retrieve tokens.
     
     .EXAMPLE
         PS C:\> Connect-ServicePassword -Credential max@contoso.com -ClientID $client -TenantID $tenant -Scopes 'user.read','user.readbasic.all'
@@ -48,7 +51,11 @@
 		$TenantID,
         
 		[string[]]
-		$Scopes = '.default'
+		$Scopes = '.default',
+
+		[Parameter(Mandatory = $true)]
+        [string]
+		$AuthenticationUrl
 	)
 
 	$actualScopes = $Scopes | Resolve-ScopeName -Resource $Resource
@@ -61,7 +68,7 @@
 		grant_type = 'password'
 	}
     
-	try { $authResponse = Invoke-RestMethod -Method POST -Uri "https://login.microsoftonline.com/$TenantID/oauth2/v2.0/token" -Body $request -ErrorAction Stop }
+	try { $authResponse = Invoke-RestMethod -Method POST -Uri "$AuthenticationUrl/$TenantID/oauth2/v2.0/token" -Body $request -ErrorAction Stop }
 	catch { throw }
 	
 	Read-AuthResponse -AuthResponse $authResponse

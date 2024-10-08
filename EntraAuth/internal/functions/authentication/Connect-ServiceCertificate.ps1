@@ -17,6 +17,9 @@
 	
 	.PARAMETER ClientID
 		The ID of the registered application used to authenticate as.
+
+	.PARAMETER AuthenticationUrl
+		The url used for the authentication requests to retrieve tokens.
 	
 	.EXAMPLE
 		PS C:\> Connect-ServiceCertificate -Certificate $cert -TenantID $tenantID -ClientID $clientID
@@ -42,7 +45,11 @@
 		
         [Parameter(Mandatory = $true)]
         [string]
-        $ClientID
+        $ClientID,
+
+		[Parameter(Mandatory = $true)]
+        [string]
+		$AuthenticationUrl
     )
 	
     #region Build Signature Payload
@@ -53,11 +60,11 @@
     }
     $encodedHeader = $jwtHeader | ConvertTo-Json | ConvertTo-Base64
     $claims = @{
-        aud = "https://login.microsoftonline.com/$TenantID/v2.0"
-        exp = ((Get-Date).AddMinutes(5) - (Get-Date -Date '1970.1.1')).TotalSeconds -as [int]
+        aud = "$AuthenticationUrl/$TenantID/v2.0"
+        exp = ((Get-Date).AddMinutes(5).ToUniversalTime() - (Get-Date -Date '1970-01-01')).TotalSeconds -as [int]
         iss = $ClientID
         jti = "$(New-Guid)"
-        nbf = ((Get-Date) - (Get-Date -Date '1970.1.1')).TotalSeconds -as [int]
+        nbf = ((Get-Date).ToUniversalTime() - (Get-Date -Date '1970-01-01')).TotalSeconds -as [int]
         sub = $ClientID
     }
     $encodedClaims = $claims | ConvertTo-Json | ConvertTo-Base64
@@ -76,7 +83,7 @@
     $header = @{
         Authorization = "Bearer $jwt"
     }
-    $uri = "https://login.microsoftonline.com/$TenantID/oauth2/v2.0/token"
+    $uri = "$AuthenticationUrl/$TenantID/oauth2/v2.0/token"
 	
     try { $authResponse = Invoke-RestMethod -Method Post -Uri $uri -Body $body -Headers $header -ContentType 'application/x-www-form-urlencoded' -ErrorAction Stop }
     catch { throw }

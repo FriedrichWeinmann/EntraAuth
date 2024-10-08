@@ -92,6 +92,21 @@
 	.PARAMETER IdentityType
 		Type of the User-Managed Identity.
 
+	.PARAMETER AsAzAccount
+		Reuse the existing Az.Accounts session to authenticate.
+		This is convenient as no further interaction is needed, but also limited in what scopes are available.
+		This authentication flow requires the 'Az.Accounts' module to be present, loaded and connected.
+		Use 'Connect-AzAccount' to connect first.
+
+	.PARAMETER ShowDialog
+		Whether to show an interactive dialog when connecting using the existing Az.Accounts session.
+		Defaults to: "auto"
+
+		Options:
+		- auto: Shows dialog only if needed.
+		- always: Will always show the dialog, forcing interaction.
+		- never: Will never show the dialog. Authentication will fail if interaction is required.
+
 	.PARAMETER Service
 		The service to connect to.
 		Individual commands using Invoke-EntraRequest specify the service to use and thus identify the token needed.
@@ -113,11 +128,24 @@
 
 	.PARAMETER PassThru
 		Return the token received for the current connection.
+
+	.PARAMETER Environment
+		What environment this service should connect to.
+		Defaults to: 'Global'
+
+	.PARAMETER AuthenticationUrl
+		The url used for the authentication requests to retrieve tokens.
+		Usually determined by service connected to or the "Environment" parameter, but may be overridden in case of need.
 	
 	.EXAMPLE
 		PS C:\> Connect-EntraService -ClientID $clientID -TenantID $tenantID
 	
 		Establish a connection to the graph API, prompting the user for login on their default browser.
+
+	.EXAMPLE
+		PS C:\> connect-EntraService -AsAzAccount
+
+		Establish a connection to the graph API, using the current Az.Accounts session.
 	
 	.EXAMPLE
 		PS C:\> Connect-EntraService -ClientID $clientID -TenantID $tenantID -Certificate $cert
@@ -228,6 +256,15 @@
 		[string]
 		$IdentityType = 'ClientID',
 
+		[Parameter(Mandatory = $true, ParameterSetName = 'AzAccount')]
+		[switch]
+		$AsAzAccount,
+
+		[Parameter(ParameterSetName = 'AzAccount')]
+		[ValidateSet('Auto', 'Always', 'Never')]
+		[string]
+		$ShowDialog = 'Auto',
+
 		[ArgumentCompleter({ Get-ServiceCompletion $args })]
 		[ValidateScript({ Assert-ServiceName -Name $_ })]
 		[string[]]
@@ -243,7 +280,13 @@
 		$MakeDefault,
 
 		[switch]
-		$PassThru
+		$PassThru,
+
+		[Environment]
+		$Environment,
+
+		[string]
+		$AuthenticationUrl
 	)
 	begin {
 		$doRegister = $PSBoundParameters.Keys -notcontains 'Resource'
@@ -259,14 +302,42 @@
 				$serviceName = '<custom>'
 			}
 
-			$commonParam = @{
-				ClientID = $ClientID
-				TenantID = $TenantID
-				Resource = $serviceObject.Resource
+			#region AuthenticationUrl
+			$authUrl = switch ("$Environment") {
+				'China' { 'https://login.chinacloudapi.cn' }
+				'USGov' { 'https://login.microsoftonline.us' }
+				'USGovDOD' { 'https://login.microsoftonline.us' }
+				default { 'https://login.microsoftonline.com' }
 			}
+			if ($AuthenticationUrl) { $authUrl = $AuthenticationUrl.TrimEnd('/') }
+
+			if (
+				$serviceObject.AuthenticationUrl -and
+				$PSBoundParameters.Keys -notcontains 'Environment' -and
+				$PSBoundParameters.Keys -notcontains 'AuthenticationUrl'
+			) {
+				$authUrl = $serviceObject.AuthenticationUrl
+			}
+			#endregion AuthenticationUrl
+
+			$commonParam = @{
+				ClientID          = $ClientID
+				TenantID          = $TenantID
+				Resource          = $serviceObject.Resource
+				AuthenticationUrl = $authUrl
+			}
+			#region Service Url
 			$effectiveServiceUrl = $ServiceUrl
 			if (-not $ServiceUrl -and $serviceObject) { $effectiveServiceUrl = $serviceObject.ServiceUrl }
 			if ($Resource) { $commonParam.Resource = $Resource }
+
+			# If users explicitly provide a service URL, who are we to override that?
+			if (-not $ServiceUrl) {
+				if ('USGovDOD' -eq $Environment) { $effectiveServiceUrl = $effectiveServiceUrl -replace '^https://graph.microsoft.com', 'https://dod-graph.microsoft.us' -replace '^https://manage.azure.com', 'https://manage.usgovcloudapi.net' }
+				elseif ($authUrl -eq 'https://login.microsoftonline.us') { $effectiveServiceUrl = $effectiveServiceUrl -replace '^https://graph.microsoft.com', 'https://graph.microsoft.us' -replace '^https://manage.azure.com', 'https://manage.usgovcloudapi.net' }
+				elseif ($authUrl -eq 'https://login.chinacloudapi.cn') { $effectiveServiceUrl = $effectiveServiceUrl -replace '^https://graph.microsoft.com', 'https://microsoftgraph.chinacloudapi.cn' -replace '^https://manage.azure.com', 'https://management.core.chinacloudapi.cn' }
+			}
+			#endregion Service Url
 			
 			#region Connection
 			switch ($PSCmdlet.ParameterSetName) {
@@ -282,7 +353,7 @@
 						$PSCmdlet.ThrowTerminatingError($_)
 					}
 					
-					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $effectiveServiceUrl, $false)
+					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $effectiveServiceUrl, $false, $authUrl)
 					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
 					$token.SetTokenMetadata($result)
 					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
@@ -302,7 +373,7 @@
 						$PSCmdlet.ThrowTerminatingError($_)
 					}
 
-					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $effectiveServiceUrl, $true)
+					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $effectiveServiceUrl, $true, $authUrl)
 					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
 					$token.SetTokenMetadata($result)
 					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
@@ -319,7 +390,7 @@
 						$PSCmdlet.ThrowTerminatingError($_)
 					}
 
-					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $Credential, $effectiveServiceUrl)
+					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $Credential, $effectiveServiceUrl, $authUrl)
 					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
 					$token.SetTokenMetadata($result)
 					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
@@ -336,7 +407,7 @@
 						$PSCmdlet.ThrowTerminatingError($_)
 					}
 
-					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $ClientSecret, $effectiveServiceUrl)
+					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $ClientSecret, $effectiveServiceUrl, $authUrl)
 					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
 					$token.SetTokenMetadata($result)
 					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
@@ -358,7 +429,7 @@
 						$PSCmdlet.ThrowTerminatingError($_)
 					}
 
-					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $certificateObject, $effectiveServiceUrl)
+					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $certificateObject, $effectiveServiceUrl, $authUrl)
 					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
 					$token.SetTokenMetadata($result)
 					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
@@ -384,7 +455,7 @@
 						Write-Warning "[$serviceName] Failed to connect: $_"
 						$PSCmdlet.ThrowTerminatingError($_)
 					}
-					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $effectiveServiceUrl, $VaultName, $SecretName)
+					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $effectiveServiceUrl, $VaultName, $SecretName, $authUrl)
 					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
 					$token.SetTokenMetadata($result)
 					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
@@ -406,6 +477,27 @@
 					Write-Verbose "[$serviceName] Connected via Managed Identity ($($token.Scopes -join ', '))"
 				}
 				#endregion Identity
+
+				#region AzAccount
+				AzAccount {
+					Write-Verbose "[$serviceName] Connecting via existing Az.Accounts session"
+
+					try { $result = Connect-ServiceAzure -Resource $commonParam.Resource -ShowDialog $ShowDialog -ErrorAction Stop }
+					catch {
+						Write-Warning "[$serviceName] Failed to connect: $_"
+						$PSCmdlet.ThrowTerminatingError($_)
+					}
+
+					$token = [EntraToken]::new($serviceName, $effectiveServiceUrl, $ShowDialog)
+					$token.TenantID = $result.TenantID
+					$token.ClientID = $result.ClientID
+					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
+					$token.SetTokenMetadata($result)
+					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
+
+					Write-Verbose "[$serviceName] Connected via existing Az.Accounts session ($($token.Scopes -join ', '))"
+				}
+				#endregion AzAccount
 			}
 			#endregion Connection
 

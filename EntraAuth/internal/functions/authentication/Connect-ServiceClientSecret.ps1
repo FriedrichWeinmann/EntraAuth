@@ -17,6 +17,9 @@
 	
 	.PARAMETER ClientSecret
 		The actual secret used for authenticating the request.
+
+	.PARAMETER AuthenticationUrl
+		The url used for the authentication requests to retrieve tokens.
 	
 	.EXAMPLE
 		PS C:\> Connect-ServiceClientSecret -ClientID '<ClientID>' -TenantID '<TenantID>' -ClientSecret $secret
@@ -39,7 +42,11 @@
 		
         [Parameter(Mandatory = $true)]
         [securestring]
-        $ClientSecret
+        $ClientSecret,
+
+		[Parameter(Mandatory = $true)]
+        [string]
+		$AuthenticationUrl
     )
 	
     process {
@@ -49,7 +56,7 @@
             client_secret = [PSCredential]::new('NoMatter', $ClientSecret).GetNetworkCredential().Password
             grant_type    = 'client_credentials'
         }
-        try { $authResponse = Invoke-RestMethod -Method Post -Uri "https://login.microsoftonline.com/$TenantId/oauth2/token" -Body $body -ErrorAction Stop }
+        try { $authResponse = Invoke-RestMethod -Method Post -Uri "$AuthenticationUrl/$TenantId/oauth2/token" -Body $body -ErrorAction Stop }
         catch { throw }
 		
         Read-AuthResponse -AuthResponse $authResponse
