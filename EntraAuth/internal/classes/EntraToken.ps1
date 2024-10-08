@@ -34,6 +34,9 @@
 	# Workflow: Key Vault
 	[string]$VaultName
 	[string]$SecretName
+
+	# Workflow: Az.Accounts
+	[string]$ShowDialog
 	#endregion Connection Data
 	
 	#region Constructors
@@ -97,6 +100,13 @@
 			$this.IdentityID = $IdentityID
 			$this.IdentityType = $IdentityType
 		}
+	}
+
+	EntraToken([string]$Service, [string]$ServiceUrl, [string]$ShowDialog) {
+		$this.Service = $Service
+		$this.ServiceUrl = $ServiceUrl
+		$this.ShowDialog = $ShowDialog
+		$this.Type = 'AzAccount'
 	}
 	#endregion Constructors
 
@@ -182,6 +192,10 @@
 			}
 			Identity {
 				$result = Connect-ServiceIdentity -Resource $this.Audience -IdentityID $this.IdentityID -IdentityType $this.IdentityType
+				$this.SetTokenMetadata($result)
+			}
+			AzAccount {
+				$result = Connect-ServiceAzure -Resource $this.Audience -ShowDialog $this.ShowDialog
 				$this.SetTokenMetadata($result)
 			}
 		}

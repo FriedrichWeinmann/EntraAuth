@@ -32,6 +32,7 @@
 		$scopes = @()
 		if ($AuthResponse.scope) { $scopes = $authResponse.scope -split " " }
 
+		# If updating this layout, also update in Connect-ServiceAzure, which fakes this object
 		[pscustomobject]@{
 			AccessToken  = $AuthResponse.access_token
 			ValidAfter   = $after
