@@ -92,6 +92,21 @@
 	.PARAMETER IdentityType
 		Type of the User-Managed Identity.
 
+	.PARAMETER AsAzAccount
+		Reuse the existing Az.Accounts session to authenticate.
+		This is convenient as no further interaction is needed, but also limited in what scopes are available.
+		This authentication flow requires the 'Az.Accounts' module to be present, loaded and connected.
+		Use 'Connect-AzAccount' to connect first.
+
+	.PARAMETER ShowDialog
+		Whether to show an interactive dialog when connecting using the existing Az.Accounts session.
+		Defaults to: "auto"
+
+		Options:
+		- auto: Shows dialog only if needed.
+		- always: Will always show the dialog, forcing interaction.
+		- never: Will never show the dialog. Authentication will fail if interaction is required.
+
 	.PARAMETER Service
 		The service to connect to.
 		Individual commands using Invoke-EntraRequest specify the service to use and thus identify the token needed.
@@ -126,6 +141,11 @@
 		PS C:\> Connect-EntraService -ClientID $clientID -TenantID $tenantID
 	
 		Establish a connection to the graph API, prompting the user for login on their default browser.
+
+	.EXAMPLE
+		PS C:\> connect-EntraService -AsAzAccount
+
+		Establish a connection to the graph API, using the current Az.Accounts session.
 	
 	.EXAMPLE
 		PS C:\> Connect-EntraService -ClientID $clientID -TenantID $tenantID -Certificate $cert
@@ -235,6 +255,15 @@
 		[ValidateSet('ClientID', 'ResourceID', 'PrincipalID')]
 		[string]
 		$IdentityType = 'ClientID',
+
+		[Parameter(Mandatory = $true, ParameterSetName = 'AzAccount')]
+		[switch]
+		$AsAzAccount,
+
+		[Parameter(ParameterSetName = 'AzAccount')]
+		[ValidateSet('Auto', 'Always', 'Never')]
+		[string]
+		$ShowDialog = 'Auto',
 
 		[ArgumentCompleter({ Get-ServiceCompletion $args })]
 		[ValidateScript({ Assert-ServiceName -Name $_ })]
@@ -448,6 +477,27 @@
 					Write-Verbose "[$serviceName] Connected via Managed Identity ($($token.Scopes -join ', '))"
 				}
 				#endregion Identity
+
+				#region AzAccount
+				AzAccount {
+					Write-Verbose "[$serviceName] Connecting via existing Az.Accounts session"
+
+					try { $result = Connect-ServiceAzure -Resource $commonParam.Resource -ShowDialog $ShowDialog -ErrorAction Stop }
+					catch {
+						Write-Warning "[$serviceName] Failed to connect: $_"
+						$PSCmdlet.ThrowTerminatingError($_)
+					}
+
+					$token = [EntraToken]::new($serviceName, $effectiveServiceUrl, $ShowDialog)
+					$token.TenantID = $result.TenantID
+					$token.ClientID = $result.ClientID
+					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
+					$token.SetTokenMetadata($result)
+					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
+
+					Write-Verbose "[$serviceName] Connected via existing Az.Accounts session ($($token.Scopes -join ', '))"
+				}
+				#endregion AzAccount
 			}
 			#endregion Connection
 

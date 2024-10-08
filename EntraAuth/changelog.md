@@ -1,7 +1,8 @@
 ﻿# Changelog
 
-## Unreleased
+## 1.3.18 (2024-10-08)
 
++ Upd: Added support for authenticating using the current Az.Accounts session
 + Upd: Added support for Sovereign Clouds (USGov, USGovDOD, China) and custom authentication urls.
 + Fix: Certificate Logon fails on timezones after UTC
 
