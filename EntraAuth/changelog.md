@@ -1,5 +1,9 @@
 ﻿# Changelog
 
+## 1.3.19 (2024-10-13)
+
++ Upd: Invoke-EntraRequest - `-Body` parameter now supports raw string or custom objects.
+
 ## 1.3.18 (2024-10-08)
 
 + Upd: Added support for authenticating using the current Az.Accounts session
