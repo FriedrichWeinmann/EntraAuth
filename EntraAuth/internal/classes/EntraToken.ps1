@@ -182,6 +182,9 @@
 				$result = Connect-ServiceBrowser @defaultParam -SelectAccount
 				$this.SetTokenMetadata($result)
 			}
+			Refresh {
+				Connect-ServiceRefreshToken -Token $this
+			}
 			KeyVault {
 				$secret = Get-VaultSecret -VaultName $this.VaultName -SecretName $this.SecretName
 				$result = switch ($secret.Type) {
