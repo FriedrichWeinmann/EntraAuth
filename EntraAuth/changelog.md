@@ -1,5 +1,10 @@
 ﻿# Changelog
 
+## 1.4.21 (2024-11-26)
+
++ Upd: Added support for authenticating using an existing refresh token
++ Fix: Invoke-EntraRequest - "body not supported with this method" error when using Get requests with a body (#23)
+
 ## 1.3.19 (2024-10-13)
 
 + Upd: Invoke-EntraRequest - `-Body` parameter now supports raw string or custom objects.

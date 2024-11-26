@@ -30,6 +30,14 @@
 	.PARAMETER DeviceCode
 		Use the Device Code delegate authentication flow.
 		This will prompt the user to complete login via browser.
+
+	.PARAMETER RefreshToken
+		Use an already existing RefreshToken to authenticate.
+		Can be used to connect to multiple services using a single interactive delegate auth flow.
+
+	.PARAMETER RefreshTokenObject
+		Use the full token object of a delegate session with a refresh token, to authenticate to another service with this object.
+		Can be used to connect to multiple services using a single interactive delegate auth flow.
 	
 	.PARAMETER Certificate
 		The Certificate object used to authenticate with.
@@ -173,6 +181,7 @@
 	param (
 		[Parameter(Mandatory = $true, ParameterSetName = 'Browser')]
 		[Parameter(Mandatory = $true, ParameterSetName = 'DeviceCode')]
+		[Parameter(Mandatory = $true, ParameterSetName = 'Refresh')]
 		[Parameter(Mandatory = $true, ParameterSetName = 'AppCertificate')]
 		[Parameter(Mandatory = $true, ParameterSetName = 'AppSecret')]
 		[Parameter(Mandatory = $true, ParameterSetName = 'UsernamePassword')]
@@ -182,6 +191,7 @@
 		
 		[Parameter(Mandatory = $true, ParameterSetName = 'Browser')]
 		[Parameter(Mandatory = $true, ParameterSetName = 'DeviceCode')]
+		[Parameter(Mandatory = $true, ParameterSetName = 'Refresh')]
 		[Parameter(Mandatory = $true, ParameterSetName = 'AppCertificate')]
 		[Parameter(Mandatory = $true, ParameterSetName = 'AppSecret')]
 		[Parameter(Mandatory = $true, ParameterSetName = 'UsernamePassword')]
@@ -191,6 +201,8 @@
 		
 		[Parameter(ParameterSetName = 'Browser')]
 		[Parameter(ParameterSetName = 'DeviceCode')]
+		[Parameter(ParameterSetName = 'Refresh')]
+		[Parameter(ParameterSetName = 'RefreshObject')]
 		[string[]]
 		$Scopes,
 
@@ -206,6 +218,14 @@
 		[Parameter(Mandatory = $true, ParameterSetName = 'DeviceCode')]
 		[switch]
 		$DeviceCode,
+
+		[Parameter(Mandatory = $true, ParameterSetName = 'Refresh')]
+		[string]
+		$RefreshToken,
+
+		[Parameter(Mandatory = $true, ParameterSetName = 'RefreshObject')]
+		[EntraToken]
+		$RefreshTokenObject,
 		
 		[Parameter(ParameterSetName = 'AppCertificate')]
 		[System.Security.Cryptography.X509Certificates.X509Certificate2]
@@ -380,6 +400,50 @@
 					Write-Verbose "[$serviceName] Connected via DeviceCode ($($token.Scopes -join ', '))"
 				}
 				#endregion DeviceCode
+
+				#region RefreshToken
+				Refresh {
+					$scopesToUse = $Scopes
+					if (-not $Scopes) { $scopesToUse = $serviceObject.DefaultScopes }
+					if (-not $scopesToUse) { $scopesToUse = '.default' }
+
+					Write-Verbose "[$serviceName] Connecting via RefreshToken ($($scopesToUse -join ', '))"
+					try { $result = Connect-ServiceRefreshToken @commonParam -RefreshToken $RefreshToken -Scopes $scopesToUse -ErrorAction Stop }
+					catch {
+						Write-Warning "[$serviceName] Failed to connect: $_"
+						$PSCmdlet.ThrowTerminatingError($_)
+					}
+
+					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $effectiveServiceUrl, $false, $authUrl)
+					$token.Type = 'Refresh'
+					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
+					$token.SetTokenMetadata($result)
+					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
+					Write-Verbose "[$serviceName] Connected via RefreshToken ($($token.Scopes -join ', '))"
+				}
+				#endregion RefreshToken
+
+				#region RefreshObject
+				RefreshObject {
+					$scopesToUse = $Scopes
+					if (-not $Scopes) { $scopesToUse = $serviceObject.DefaultScopes }
+					if (-not $scopesToUse) { $scopesToUse = '.default' }
+
+					Write-Verbose "[$serviceName] Connecting via RefreshToken ($($scopesToUse -join ', '))"
+					try { $result = Connect-ServiceRefreshToken -ClientID $RefreshTokenObject.ClientID -TenantID $RefreshTokenObject.TenantID -Resource $commonParam.Resource -AuthenticationUrl $RefreshTokenObject.AuthenticationUrl -RefreshToken $RefreshTokenObject.RefreshToken -Scopes $scopesToUse -ErrorAction Stop }
+					catch {
+						Write-Warning "[$serviceName] Failed to connect: $_"
+						$PSCmdlet.ThrowTerminatingError($_)
+					}
+
+					$token = [EntraToken]::new($serviceName, $RefreshTokenObject.ClientID, $RefreshTokenObject.TenantID, $effectiveServiceUrl, $false, $RefreshTokenObject.AuthenticationUrl)
+					$token.Type = 'Refresh'
+					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
+					$token.SetTokenMetadata($result)
+					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
+					Write-Verbose "[$serviceName] Connected via RefreshToken ($($token.Scopes -join ', '))"
+				}
+				#endregion RefreshObject
 
 				#region ROPC
 				UsernamePassword {
