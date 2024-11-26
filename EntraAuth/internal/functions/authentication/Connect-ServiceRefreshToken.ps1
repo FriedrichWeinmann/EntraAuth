@@ -7,12 +7,32 @@
 		Connect with the refresh token provided previously.
 		Used mostly for delegate authentication flows to avoid interactivity.
 
+		Can also be resolved to from the outside, when trying to get multiple tokens with a single delegate flow.
+
 	.PARAMETER Token
 		The EntraToken object with the refresh token to use.
 		The token is then refreshed in-place with no output provided.
+
+	.PARAMETER RefreshToken
+		The RefreshToken to use for authenticating.
+
+	.PARAMETER TenantID
+		ID of the tenant to connect to.
+
+	.PARAMETER ClientID
+		ID of the application to connect as.
+
+	.PARAMETER Resource
+		Resource we want the scopes for.
+
+	.PARAMETER Scopes
+		Scopes we want to use.
+
+	.PARAMETER AuthenticationUrl
+		The url used for the authentication requests to retrieve tokens.
 	
 	.EXAMPLE
-		PS C:\> Connect-ServiceRefreshToken
+		PS C:\> Connect-ServiceRefreshToken -Token $token
 		
 		Connect with the refresh token provided previously.
 	#>
