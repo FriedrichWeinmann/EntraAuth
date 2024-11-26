@@ -144,6 +144,12 @@
 				$parameters.Body = $Body | ConvertTo-Json -Compress -Depth $SerializationDepth
 			}
 		}
+		# In PS5.1, some methods cannot contain a body
+		$noBodyMethods = 'Default', 'Get', 'Head'
+		if ($PSVersionTable.PSVersion.Major -lt 6 -and $Method -in $noBodyMethods) {
+			$parameters.Remove('Body')
+		}
+		
 		$parameters.Uri += ConvertTo-QueryString -QueryHash $Query -DefaultQuery $serviceObject.Query
 
 		do {
