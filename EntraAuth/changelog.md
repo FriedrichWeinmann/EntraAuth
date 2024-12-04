@@ -1,5 +1,9 @@
 ﻿# Changelog
 
+## 1.4.22 (2024-12-04)
+
++ Upd: Connect-EntraService - added `-UseRefreshToken` parameter for delegate flows, showing the interactive prompts only if needed.
+
 ## 1.4.21 (2024-11-26)
 
 + Upd: Added support for authenticating using an existing refresh token
