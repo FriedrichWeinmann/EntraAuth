@@ -131,6 +131,13 @@
 		This token is not registered as a service and cannot be implicitly  used by Invoke-EntraRequest.
 		Also provide the "-ServiceUrl" parameter, if you later want to use this token explicitly in Invoke-EntraRequest.
 
+	.PARAMETER UseRefreshToken
+		Use a refresh token if available.
+		Only applicable when connecting using a delegate authentication flow.
+		If specified, it will look to reuse an existing refresh token for that same client ID & tenant ID, if present,
+		making the authentication process non-interactive.
+		By default, it would always do the fully interactive authentication flow via Browser.
+
 	.PARAMETER MakeDefault
 		Makes this service the new default service for all subsequent Connect-EntraService & Invoke-EntraRequest calls.
 
@@ -296,6 +303,11 @@
 		[string]
 		$Resource,
 
+		[Parameter(ParameterSetName = 'Browser')]
+		[Parameter(ParameterSetName = 'DeviceCode')]
+		[switch]
+		$UseRefreshToken,
+
 		[switch]
 		$MakeDefault,
 
@@ -313,6 +325,25 @@
 		$doPassThru = $PassThru -or $Resource
 	}
 	process {
+		#region UseRereshToken
+		$availableToken = $null
+		if ($UseRefreshToken) {
+			$availableToken = Get-EntraToken | Where-Object {
+				$_.ClientID -eq $ClientID -and
+				$_.TenantID -eq $TenantID -and
+				$_.RefreshToken
+			} | Sort-Object ValidUntil -Descending | Select-Object -First 1
+		}
+		if ($availableToken) {
+			$param = @{ }
+			foreach ($parameterName in $PSCmdlet.MyInvocation.MyCommand.ParameterSets.Where{ $_.Name -eq 'RefreshObject' }.Parameters.Name) {
+				if ($PSBoundParameters.Keys -contains $parameterName) { $param[$parameterName] = $PSBoundParameters[$parameterName] }
+			}
+			Connect-EntraService @param -RefreshTokenObject $availableToken
+			return
+		}
+		#endregion UseRereshToken
+
 		foreach ($serviceName in $Service) {
 			$serviceObject = $null
 			if (-not $Resource) {
@@ -346,6 +377,7 @@
 				Resource          = $serviceObject.Resource
 				AuthenticationUrl = $authUrl
 			}
+
 			#region Service Url
 			$effectiveServiceUrl = $ServiceUrl
 			if (-not $ServiceUrl -and $serviceObject) { $effectiveServiceUrl = $serviceObject.ServiceUrl }
@@ -359,6 +391,8 @@
 			}
 			#endregion Service Url
 			
+			
+
 			#region Connection
 			switch ($PSCmdlet.ParameterSetName) {
 				#region Browser
