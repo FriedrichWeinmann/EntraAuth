@@ -333,7 +333,7 @@
 				$_.ClientID -eq $ClientID -and
 				(
 					$_.TenantID -eq $TenantID -or
-					$TenantID -eq 'organizations'	
+					$TenantID -eq 'organizations'
 				) -and
 				$_.RefreshToken
 			} | Sort-Object ValidUntil -Descending | Select-Object -First 1
