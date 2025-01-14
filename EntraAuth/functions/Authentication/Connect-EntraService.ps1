@@ -184,6 +184,7 @@
 		Establish a connection to the graph API, after retrieving the necessary certificate from the specified Azure Key Vault.
 #>
 	[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseDeclaredVarsMoreThanAssignments", "")]
+	[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidDefaultValueForMandatoryParameter", "")]
 	[CmdletBinding(DefaultParameterSetName = 'Browser')]
 	param (
 		[Parameter(Mandatory = $true, ParameterSetName = 'Browser')]
@@ -196,15 +197,15 @@
 		[string]
 		$ClientID,
 		
-		[Parameter(Mandatory = $true, ParameterSetName = 'Browser')]
-		[Parameter(Mandatory = $true, ParameterSetName = 'DeviceCode')]
+		[Parameter(ParameterSetName = 'Browser')]
+		[Parameter(ParameterSetName = 'DeviceCode')]
 		[Parameter(Mandatory = $true, ParameterSetName = 'Refresh')]
 		[Parameter(Mandatory = $true, ParameterSetName = 'AppCertificate')]
 		[Parameter(Mandatory = $true, ParameterSetName = 'AppSecret')]
 		[Parameter(Mandatory = $true, ParameterSetName = 'UsernamePassword')]
 		[Parameter(Mandatory = $true, ParameterSetName = 'KeyVault')]
 		[string]
-		$TenantID,
+		$TenantID = 'organizations',
 		
 		[Parameter(ParameterSetName = 'Browser')]
 		[Parameter(ParameterSetName = 'DeviceCode')]
@@ -330,7 +331,10 @@
 		if ($UseRefreshToken) {
 			$availableToken = Get-EntraToken | Where-Object {
 				$_.ClientID -eq $ClientID -and
-				$_.TenantID -eq $TenantID -and
+				(
+					$_.TenantID -eq $TenantID -or
+					$TenantID -eq 'organizations'
+				) -and
 				$_.RefreshToken
 			} | Sort-Object ValidUntil -Descending | Select-Object -First 1
 		}

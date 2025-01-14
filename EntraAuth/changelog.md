@@ -1,5 +1,9 @@
 ﻿# Changelog
 
+## 1.4.23 (2025-01-14)
+
++ Upd: Connect-EntraService - removed TenantID requirement for most delegate flows, defaulting the parameter to "organizations". TenantID on the managed token object is now read from the returned token.
+
 ## 1.4.22 (2024-12-04)
 
 + Upd: Connect-EntraService - added `-UseRefreshToken` parameter for delegate flows, showing the interactive prompts only if needed.
