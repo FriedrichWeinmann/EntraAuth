@@ -128,6 +128,7 @@
 		$this.Audience = $data.aud
 		$this.Issuer = $data.iss
 		$this.TokenData = $data
+		$this.TenantID = $data.tid
 	}
 
 	[hashtable]GetHeader() {
