@@ -47,6 +47,10 @@
 				$secretVersion = Invoke-EntraRequest -Service AzureKeyVault -Path "secrets/$SecretName/versions" -VaultName $VaultName -ErrorAction Stop | Where-Object {
 					$_.attributes.enabled
 				} | Sort-Object { $_.attributes.created } -Descending | Select-Object -First 1
+
+				if (-not $secretVersion) {
+					Invoke-TerminatingException -Cmdlet $Cmdlet -ErrorRecord $_ -Message "Secret '$SecretName' does not exist in vault '$VaultName'! $_"
+				}
 				$secretData = Invoke-EntraRequest -Service AzureKeyVault -Path $secretVersion.id -VaultName $VaultName -ErrorAction Stop
 			}
 			catch {

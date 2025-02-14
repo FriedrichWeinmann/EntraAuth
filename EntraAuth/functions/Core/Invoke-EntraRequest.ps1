@@ -76,7 +76,7 @@
 		$Header = @{},
 		
 		[ArgumentCompleter({ Get-ServiceCompletion $args })]
-		[ValidateScript({ Assert-ServiceName -Name $_ })]
+		[ValidateScript({ Assert-ServiceName -Name $_ -IncludeTokens })]
 		[string]
 		$Service = $script:_DefaultService,
 
@@ -150,7 +150,7 @@
 			$parameters.Remove('Body')
 		}
 		
-		$parameters.Uri += ConvertTo-QueryString -QueryHash $Query -DefaultQuery $serviceObject.Query
+		$parameters.Uri += ConvertTo-QueryString -QueryHash $Query -DefaultQuery $tokenObject.Query
 
 		do {
 			$parameters.Headers = $tokenObject.GetHeader() + $Header # GetHeader() automatically refreshes expried tokens
