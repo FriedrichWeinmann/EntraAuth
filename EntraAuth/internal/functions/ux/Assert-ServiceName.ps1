@@ -9,6 +9,10 @@
 	
 	.PARAMETER Name
 		The name of the service to verify.
+
+	.PARAMETER IncludeTokens
+		Also include registered token's services in the assertion.
+		By default, the assertion will only verify the existence of registered services.
 	
 	.EXAMPLE
 		PS C:\> Assert-ServiceName -Name $_
@@ -20,12 +24,16 @@
 	param (
 		[Parameter(Mandatory = $true)]
 		[AllowEmptyString()]
-		[AllowNUll()]
+		[AllowNull()]
 		[string]
-		$Name
+		$Name,
+
+		[switch]
+		$IncludeTokens
 	)
 	process {
 		if ($script:_EntraEndpoints.Keys -contains $Name) { return $true }
+		if ($IncludeTokens -and $script:_EntraTokens.Keys -contains $Name) { return $true }
 
 		$serviceNames = $script:_EntraEndpoints.Keys -join ', '
 		Write-Warning "Invalid service name: '$Name'. Legal service names: $serviceNames"

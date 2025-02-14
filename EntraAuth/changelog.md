@@ -1,5 +1,13 @@
 ﻿# Changelog
 
+## 1.5.28 (2025-02-14)
+
++ New: Import-EntraToken - Imports a token into the local token store.
++ Upd: Connect-EntraService - added `-FallbackAzAccount` parameter to allow MSI authentication to fall back to the existing Az Session in case of trouble.
++ Upd: Connect-EntraService - enabled multiple secret names to be specified when logging in via Key Vault.
++ Upd: Token - default Query values are now copied onto the token from the service configuration.
++ Upd: Invoke-EntraRequest - uses default Query values from the token, rather than the service configuration
+
 ## 1.4.23 (2025-01-14)
 
 + Upd: Connect-EntraService - removed TenantID requirement for most delegate flows, defaulting the parameter to "organizations". TenantID on the managed token object is now read from the returned token.

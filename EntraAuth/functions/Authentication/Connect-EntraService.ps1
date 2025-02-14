@@ -88,6 +88,7 @@
 		Name of the secret to use from the Azure Key Vault specified through the '-VaultName' parameter.
 		In order for this flow to work, please ensure that you either have an active AzureKeyVault service connection,
 		or are connected via Connect-AzAccount.
+		Supports specifying _multiple_ secret names, in which case the first one that works will be used.
 
 	.PARAMETER Identity
 		Log on as the Managed Identity of the current system.
@@ -99,6 +100,10 @@
 
 	.PARAMETER IdentityType
 		Type of the User-Managed Identity.
+
+	.PARAMETER FallBackAzAccount
+		When logon as Managed Identity fails, try logging in as current AzAccount.
+		This is intended to allow easier local testing of code intended for an MSI environment, such as an Azure Function App.
 
 	.PARAMETER AsAzAccount
 		Reuse the existing Az.Accounts session to authenticate.
@@ -268,7 +273,7 @@
 		$VaultName,
 
 		[Parameter(Mandatory = $true, ParameterSetName = 'KeyVault')]
-		[string]
+		[string[]]
 		$SecretName,
 
 		[Parameter(Mandatory = $true, ParameterSetName = 'Identity')]
@@ -283,6 +288,10 @@
 		[ValidateSet('ClientID', 'ResourceID', 'PrincipalID')]
 		[string]
 		$IdentityType = 'ClientID',
+
+		[Parameter(ParameterSetName = 'Identity')]
+		[switch]
+		$FallBackAzAccount,
 
 		[Parameter(Mandatory = $true, ParameterSetName = 'AzAccount')]
 		[switch]
@@ -398,7 +407,7 @@
 			
 
 			#region Connection
-			switch ($PSCmdlet.ParameterSetName) {
+			:main switch ($PSCmdlet.ParameterSetName) {
 				#region Browser
 				Browser {
 					$scopesToUse = $Scopes
@@ -412,9 +421,7 @@
 					}
 					
 					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $effectiveServiceUrl, $false, $authUrl)
-					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
 					$token.SetTokenMetadata($result)
-					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
 					Write-Verbose "[$serviceName] Connected via Browser ($($token.Scopes -join ', '))"
 				}
 				#endregion Browser
@@ -432,9 +439,7 @@
 					}
 
 					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $effectiveServiceUrl, $true, $authUrl)
-					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
 					$token.SetTokenMetadata($result)
-					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
 					Write-Verbose "[$serviceName] Connected via DeviceCode ($($token.Scopes -join ', '))"
 				}
 				#endregion DeviceCode
@@ -454,9 +459,7 @@
 
 					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $effectiveServiceUrl, $false, $authUrl)
 					$token.Type = 'Refresh'
-					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
 					$token.SetTokenMetadata($result)
-					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
 					Write-Verbose "[$serviceName] Connected via RefreshToken ($($token.Scopes -join ', '))"
 				}
 				#endregion RefreshToken
@@ -476,9 +479,7 @@
 
 					$token = [EntraToken]::new($serviceName, $RefreshTokenObject.ClientID, $RefreshTokenObject.TenantID, $effectiveServiceUrl, $false, $RefreshTokenObject.AuthenticationUrl)
 					$token.Type = 'Refresh'
-					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
 					$token.SetTokenMetadata($result)
-					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
 					Write-Verbose "[$serviceName] Connected via RefreshToken ($($token.Scopes -join ', '))"
 				}
 				#endregion RefreshObject
@@ -493,9 +494,7 @@
 					}
 
 					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $Credential, $effectiveServiceUrl, $authUrl)
-					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
 					$token.SetTokenMetadata($result)
-					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
 					Write-Verbose "[$serviceName] Connected via Credential ($($token.Scopes -join ', '))"
 				}
 				#endregion ROPC
@@ -510,9 +509,7 @@
 					}
 
 					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $ClientSecret, $effectiveServiceUrl, $authUrl)
-					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
 					$token.SetTokenMetadata($result)
-					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
 					Write-Verbose "[$serviceName] Connected via AppSecret ($($token.Scopes -join ', '))"
 				}
 				#endregion AppSecret
@@ -532,9 +529,7 @@
 					}
 
 					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $certificateObject, $effectiveServiceUrl, $authUrl)
-					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
 					$token.SetTokenMetadata($result)
-					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
 					Write-Verbose "[$serviceName] Connected via Certificate ($($token.Scopes -join ', '))"
 				}
 				#endregion AppCertificate
@@ -542,26 +537,32 @@
 				#region KeyVault
 				KeyVault {
 					Write-Verbose "[$serviceName] Connecting via KeyVault"
-					try { $secret = Get-VaultSecret -VaultName $VaultName -SecretName $SecretName }
-					catch {
-						Write-Warning "[$serviceName] Failed to retrieve secret from KeyVault: $_"
-						$PSCmdlet.ThrowTerminatingError($_)
-					}
-					try {
-						$result = switch ($secret.Type) {
-							Certificate { Connect-ServiceCertificate @commonParam -Certificate $secret.Certificate -ErrorAction Stop }
-							ClientSecret { Connect-ServiceClientSecret @commonParam -ClientSecret $secret.ClientSecret -ErrorAction Stop }
+					$failure = $null
+					foreach ($secretEntry in $SecretName) {
+						try { $secret = Get-VaultSecret -VaultName $VaultName -SecretName $secretEntry }
+						catch {
+							Write-Warning "[$serviceName] Failed to retrieve secret from KeyVault: $_"
+							$PSCmdlet.ThrowTerminatingError($_)
 						}
+						try {
+							$result = switch ($secret.Type) {
+								Certificate { Connect-ServiceCertificate @commonParam -Certificate $secret.Certificate -ErrorAction Stop }
+								ClientSecret { Connect-ServiceClientSecret @commonParam -ClientSecret $secret.ClientSecret -ErrorAction Stop }
+							}
+						}
+						catch {
+							Write-Verbose "[$serviceName] Failed to connect using secret $($secretEntry): $_"
+							if (-not $failure) { $failure = $_ }
+							continue
+						}
+						$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $effectiveServiceUrl, $VaultName, $secretEntry, $authUrl)
+						$token.SetTokenMetadata($result)
+
+						Write-Verbose "[$serviceName] Connected via KeyVault ($($token.Scopes -join ', '))"
+						break main
 					}
-					catch {
-						Write-Warning "[$serviceName] Failed to connect: $_"
-						$PSCmdlet.ThrowTerminatingError($_)
-					}
-					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $effectiveServiceUrl, $VaultName, $SecretName, $authUrl)
-					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
-					$token.SetTokenMetadata($result)
-					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
-					Write-Verbose "[$serviceName] Connected via KeyVault ($($token.Scopes -join ', '))"
+					# Only reached if all secrets failed
+					$PSCmdlet.ThrowTerminatingError($failure)
 				}
 				#endregion KeyVault
 
@@ -569,12 +570,31 @@
 				Identity {
 					Write-Verbose "[$serviceName] Connecting via Managed Identity"
 
-					$result = Connect-ServiceIdentity -Resource $commonParam.Resource -IdentityID $IdentityID -IdentityType $IdentityType -Cmdlet $PSCmdlet
+					try { $result = Connect-ServiceIdentity -Resource $commonParam.Resource -IdentityID $IdentityID -IdentityType $IdentityType -ErrorAction Stop }
+					catch {
+						if (-not $FallBackAzAccount) { $PSCmdlet.ThrowTerminatingError($_) }
+
+						try {
+							$newParam = @{}
+							$validParam = $PSCmdlet.MyInvocation.MyCommand.ParameterSets.Where{$_.Name -eq 'AzAccount'}.Parameters.Name
+							foreach ($pair in $PSBoundParameters.GetEnumerator()) {
+								if ($pair.Key -notin $validParam) { continue }
+								$newParam[$pair.Key] = $pair.Value
+							}
+							$newParam.AsAzAccount = $true
+							Connect-EntraService @newParam
+
+							break main # Successfully connected
+						}
+						catch {
+							Write-Warning "Fallback to AzAccount failed: $_"
+						}
+
+						$PSCmdlet.ThrowTerminatingError($_)
+					}
 
 					$token = [EntraToken]::new($serviceName, $effectiveServiceUrl, $IdentityID, $IdentityType)
-					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
 					$token.SetTokenMetadata($result)
-					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
 
 					Write-Verbose "[$serviceName] Connected via Managed Identity ($($token.Scopes -join ', '))"
 				}
@@ -593,15 +613,25 @@
 					$token = [EntraToken]::new($serviceName, $effectiveServiceUrl, $ShowDialog)
 					$token.TenantID = $result.TenantID
 					$token.ClientID = $result.ClientID
-					if ($serviceObject.Header.Count -gt 0) { $token.Header = $serviceObject.Header.Clone() }
 					$token.SetTokenMetadata($result)
-					if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
 
 					Write-Verbose "[$serviceName] Connected via existing Az.Accounts session ($($token.Scopes -join ', '))"
 				}
 				#endregion AzAccount
 			}
 			#endregion Connection
+
+			#region Copy Service Metadata
+			if ($serviceObject) {
+				if ($serviceObject.Query.Count -gt 0) {
+					$token.Query = $serviceObject.Query.Clone()
+				}
+				if ($serviceObject.Header.Count -gt 0) {
+					$token.Header = $serviceObject.Header.Clone()
+				}
+			}
+			if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
+			#endregion Copy Service Metadata
 
 			if ($MakeDefault -and -not $Resource) {
 				$script:_DefaultService = $serviceName

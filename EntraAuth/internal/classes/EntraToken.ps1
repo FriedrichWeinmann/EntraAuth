@@ -18,6 +18,7 @@
 	[string]$ServiceUrl
 	[string]$AuthenticationUrl
 	[Hashtable]$Header = @{}
+	[Hashtable]$Query = @{}
 
 	[string]$IdentityID
 	[string]$IdentityType
@@ -108,6 +109,9 @@
 		$this.ShowDialog = $ShowDialog
 		$this.Type = 'AzAccount'
 	}
+	
+	# Empty Constructor for Import-EntraToken
+	EntraToken() {}
 	#endregion Constructors
 
 	[void]SetTokenMetadata([PSObject] $AuthToken) {
