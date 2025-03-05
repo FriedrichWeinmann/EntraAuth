@@ -38,10 +38,10 @@
 		Invoke-TerminatingException -Cmdlet $PSCmdlet -Message "Unable to find certificate with thumbprint '$($BoundParameters.CertificateThumbprint)'"
 	}
 	if ($BoundParameters.CertificateName) {
-		if ($certificate = (Get-ChildItem 'Cert:\CurrentUser\My\').Where{ $_.Subject -eq $BoundParameters.CertificateName -and $_.HasPrivateKey }) {
+		if ($certificate = @(Get-ChildItem 'Cert:\CurrentUser\My\').Where{ $_.Subject -eq $BoundParameters.CertificateName -and $_.HasPrivateKey }) {
 			return $certificate | Sort-Object NotAfter -Descending | Select-Object -First 1
 		}
-		if ($certificate = (Get-ChildItem 'Cert:\LocalMachine\My\').Where{ $_.Subject -eq $BoundParameters.CertificateName -and $_.HasPrivateKey }) {
+		if ($certificate = @(Get-ChildItem 'Cert:\LocalMachine\My\').Where{ $_.Subject -eq $BoundParameters.CertificateName -and $_.HasPrivateKey }) {
 			return $certificate | Sort-Object NotAfter -Descending | Select-Object -First 1
 		}
 		Invoke-TerminatingException -Cmdlet $PSCmdlet -Message "Unable to find certificate with subject '$($BoundParameters.CertificateName)'"
