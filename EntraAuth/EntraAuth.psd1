@@ -4,7 +4,7 @@
 RootModule = 'EntraAuth.psm1'
 
 # Version number of this module.
-ModuleVersion = '1.5.30'
+ModuleVersion = '1.5.31'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()

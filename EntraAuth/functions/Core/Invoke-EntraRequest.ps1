@@ -153,7 +153,9 @@
 		$parameters.Uri += ConvertTo-QueryString -QueryHash $Query -DefaultQuery $tokenObject.Query
 
 		do {
-			$parameters.Headers = $tokenObject.GetHeader() + $Header # GetHeader() automatically refreshes expried tokens
+			$tempHeader = $tokenObject.GetHeader().Clone() # GetHeader() automatically refreshes expired tokens
+			foreach ($pair in $Header.GetEnumerator()) { $tempHeader[$pair.Key] = $pair.Value }
+			$parameters.Headers = $tempHeader
 			Write-Verbose "Executing Request: $($Method) -> $($parameters.Uri)"
 			try { $result = Invoke-RestMethod @parameters -ErrorAction Stop }
 			catch {
