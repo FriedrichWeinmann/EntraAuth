@@ -1,5 +1,9 @@
 ﻿# Changelog
 
+## 1.5.31 (2025-03-05)
+
++ Upd: Invoke-EntraRequest - now allows overriding default header entries
+
 ## 1.5.30 (2025-03-05)
 
 + Upd: Connect-EntraService - now accepts "Graph" or "Azure" as ClientID, resolving the respective first party App IDs.
