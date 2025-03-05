@@ -9,6 +9,10 @@
 	
 	.PARAMETER ClientID
 		ID of the registered/enterprise application used for authentication.
+
+		Supports providing special labels as "ID":
+		+ Azure: Resolves to the actual ID of the first party app used by Connect-AzAccount
+		+ Graph: Resolves to the actual ID of the first party app used by Connect-MgGraph
 	
 	.PARAMETER TenantID
 		The ID of the tenant/directory to connect to.
@@ -199,6 +203,7 @@
 		[Parameter(Mandatory = $true, ParameterSetName = 'AppSecret')]
 		[Parameter(Mandatory = $true, ParameterSetName = 'UsernamePassword')]
 		[Parameter(Mandatory = $true, ParameterSetName = 'KeyVault')]
+		[ArgumentCompleter({ 'Graph', 'Azure' })]
 		[string]
 		$ClientID,
 		
@@ -333,6 +338,11 @@
 	begin {
 		$doRegister = $PSBoundParameters.Keys -notcontains 'Resource'
 		$doPassThru = $PassThru -or $Resource
+
+		switch ($ClientID) {
+			'Graph' { $ClientID = '14d82eec-204b-4c2f-b7e8-296a70dab67e' }
+			'Azure' { $ClientID = '1950a258-227b-4e31-a9cf-717495945fc2' }
+		}
 	}
 	process {
 		#region UseRereshToken

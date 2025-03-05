@@ -1,5 +1,10 @@
 ﻿# Changelog
 
+## 1.5.30 (2025-03-05)
+
++ Upd: Connect-EntraService - now accepts "Graph" or "Azure" as ClientID, resolving the respective first party App IDs.
++ Fix: Connect-EntraService - fails to find a certificate by name, when the cert store contains only a single certificate
+
 ## 1.5.28 (2025-02-14)
 
 + New: Import-EntraToken - Imports a token into the local token store.
