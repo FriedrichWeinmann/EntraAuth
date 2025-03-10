@@ -47,6 +47,12 @@
 	.PARAMETER Query
 		Extra Query Parameters to automatically include on all requests.
 
+	.PARAMETER RawOnly
+		Disable default API response handling.
+		By default, when executing a request via Invoke-EntraRequest, the response is processed as if it were a default Graph API standard response.
+		Many other MS APIs follow the same standard, but not all do so.
+		When enabling this setting on a service, all requests against that service will NOT have that processing applied and instead return raw responses.
+
 	.PARAMETER Environment
 		What environment this service should connect to.
 		Defaults to: 'Global'
@@ -93,6 +99,9 @@
 		[Hashtable]
 		$Query = @{},
 
+		[switch]
+		$RawOnly,
+
 		[Environment]
 		$Environment = 'Global',
 
@@ -114,16 +123,17 @@
 		if ($AuthenticationUrl) { $authUrl = $AuthenticationUrl.TrimEnd('/') }
 
 		$script:_EntraEndpoints[$Name] = [PSCustomObject]@{
-			PSTypeName       = 'EntraAuth.Service'
-			Name             = $Name
-			ServiceUrl       = $ServiceUrl
-			Resource         = $Resource
-			DefaultScopes    = $DefaultScopes
-			Header           = $Header
-			HelpUrl          = $HelpUrl
-			NoRefresh        = $NoRefresh.ToBool()
-			Parameters       = $Parameters
-			Query            = $Query
+			PSTypeName        = 'EntraAuth.Service'
+			Name              = $Name
+			ServiceUrl        = $ServiceUrl
+			Resource          = $Resource
+			DefaultScopes     = $DefaultScopes
+			Header            = $Header
+			HelpUrl           = $HelpUrl
+			NoRefresh         = $NoRefresh.ToBool()
+			Parameters        = $Parameters
+			Query             = $Query
+			RawOnly           = $RawOnly.ToBool()
 			AuthenticationUrl = $authUrl
 		}
 	}

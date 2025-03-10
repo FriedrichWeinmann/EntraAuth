@@ -1,5 +1,10 @@
 ﻿# Changelog
 
+## 1.6.33 (2025-03-10)
+
++ New: New-EntraCustomToken - Create a custom token compatible with EntraAuth.
++ Upd: Register-EntraService - add `RawOnly` parameter to have all requests to that service use raw processing by default.
+
 ## 1.5.31 (2025-03-05)
 
 + Upd: Invoke-EntraRequest - now allows overriding default header entries

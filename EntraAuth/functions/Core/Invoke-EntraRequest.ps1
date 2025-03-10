@@ -184,7 +184,7 @@
 					$PSCmdlet.ThrowTerminatingError($failure)
 				}
 			}
-			if (-not $Raw -and $result.PSObject.Properties.Where{ $_.Name -eq 'value' }) { $result.Value }
+			if (-not $Raw -and -not $tokenObject.RawOnly -and $result.PSObject.Properties.Where{ $_.Name -eq 'value' }) { $result.Value }
 			else { $result }
 			$parameters.Uri = $result.'@odata.nextLink'
 		}
