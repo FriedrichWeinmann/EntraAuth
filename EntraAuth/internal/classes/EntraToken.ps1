@@ -19,7 +19,8 @@
 	[string]$AuthenticationUrl
 	[Hashtable]$Header = @{}
 	[Hashtable]$Query = @{}
-
+	[bool]$RawOnly
+	
 	[string]$IdentityID
 	[string]$IdentityType
 	
@@ -38,6 +39,11 @@
 
 	# Workflow: Az.Accounts
 	[string]$ShowDialog
+
+	# Workflow: Custom Token
+	[scriptblock]$HeaderCode
+	[hashtable]$Data = @{}
+
 	#endregion Connection Data
 	
 	#region Constructors
@@ -124,18 +130,27 @@
 		$tokenPayload = $AuthToken.AccessToken.Split(".")[1].Replace('-', '+').Replace('_', '/')
 		while ($tokenPayload.Length % 4) { $tokenPayload += "=" }
 		$bytes = [System.Convert]::FromBase64String($tokenPayload)
-		$data = [System.Text.Encoding]::ASCII.GetString($bytes) | ConvertFrom-Json
+		$localData = [System.Text.Encoding]::ASCII.GetString($bytes) | ConvertFrom-Json
 		
-		if ($data.roles) { $this.Scopes = $data.roles }
-		elseif ($data.scp) { $this.Scopes = $data.scp -split " " }
+		if ($localData.roles) { $this.Scopes = $localData.roles }
+		elseif ($localData.scp) { $this.Scopes = $localData.scp -split " " }
 
-		$this.Audience = $data.aud
-		$this.Issuer = $data.iss
-		$this.TokenData = $data
-		$this.TenantID = $data.tid
+		$this.Audience = $localData.aud
+		$this.Issuer = $localData.iss
+		$this.TokenData = $localData
+		$this.TenantID = $localData.tid
 	}
 
 	[hashtable]GetHeader() {
+		if ($this.HeaderCode) {
+			$newHeader = $this.Header.Clone()
+			$results = @(& $this.HeaderCode $this)[0]
+			foreach ($pair in $results.GetEnumerator()) {
+				$newHeader[$pair.Key] = $pair.Value
+			}
+			return $newHeader
+		}
+
 		if ($this.ValidUntil -lt (Get-Date).AddMinutes(5)) {
 			$this.RenewToken()
 		}

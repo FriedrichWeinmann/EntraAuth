@@ -639,6 +639,9 @@
 				if ($serviceObject.Header.Count -gt 0) {
 					$token.Header = $serviceObject.Header.Clone()
 				}
+				if ($serviceObject.RawOnly) {
+					$token.RawOnly = $true
+				}
 			}
 			if ($doRegister) { $script:_EntraTokens[$serviceName] = $token }
 			#endregion Copy Service Metadata
