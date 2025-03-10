@@ -61,6 +61,7 @@
 
 		Registers a new token for Azure DevOps, using PAT to authenticate.
 	#>
+	[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseShouldProcessForStateChangingFunctions", "")]
 	[CmdletBinding()]
 	param (
 		[Parameter(Mandatory = $true)]
