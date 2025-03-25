@@ -31,6 +31,7 @@
 
 		Will return: "displayName eq 'John Doe' and organization in ('Contoso', 'Fabrikam')"
 	#>
+	[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseShouldProcessForStateChangingFunctions", "")]
 	[OutputType([FilterBuilder])]
 	[CmdletBinding()]
 	param ()

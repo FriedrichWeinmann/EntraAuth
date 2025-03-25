@@ -55,6 +55,7 @@
 		
 		Creates a new ServiceSelector object and stores it in $script:_serviceSelector
 	#>
+	[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseShouldProcessForStateChangingFunctions", "")]
 	[OutputType([ServiceSelector])]
 	[CmdletBinding()]
 	param (
