@@ -32,6 +32,25 @@ Some common services come preconfigured (e.g. Graph, GraphBeta or the Security A
 
 > Note for module developers: There is a dedicated chapter at the bottom with important advice.
 
+## Quickstart to Graph
+
+While this module is intended to interact with many APIs, the Graph API is by far the most common need.
+So, let's get started with the right away:
+
+```powershell
+# Connect via default PowerShell Graph application
+Connect-EntraService -ClientID Graph -Scopes User.ReadBasic.All
+
+# Read info about current user
+Invoke-EntraRequest -Path me
+
+# List all users
+Invoke-EntraRequest -Path users
+```
+
+There is a lot more to authenticating - especially once the default applications no longer suffice and we need to talk to more than just Graph.
+See below for the nitty-gritty "How the hell do I make this work?!" details.
+
 ## Preparing to Authenticate
 
 For those new to connecting to and executing against APIs that require Entra authentication, we have prepared a guide, explaining the different authentication options, which to chose when and what you need to do to prepare outside of the code.
@@ -294,34 +313,4 @@ Configuring a service to not refresh means interactive logons will prompt again 
 
 ## Module building on EntraAuth
 
-As a module author, building on EntraAuth for authentication purposes, there are two important aspects to using this module:
-
-+ Default Service
-+ What Service to use
-
-> Default Service
-
-Above, we described how to chose / override the default Service `Invoke-EntraRequest` is going to use.
-_DO NOT USE THIS!_
-
-This is going to risk confusing the user who may expect another default of their own choice.
-It may also lead to conflict with other modules and unexpected errors.
-
-If you do not always want to specify the service name or connection token, set the default value in your psm1 file like this:
-
-```powershell
-$PSDefaultParameterValues['Invoke-EntraRequest:Service'] = 'MyService'
-```
-
-This is going to apply to your entire module but not affect others.
-
-> What Service to use
-
-Let us assume your module wants to execute graph requests.
-For this you could use the default Graph service.
-If you do, that means the user only needs to log on once and all modules using EntraAuth can use the same connection.
-
-However, that also means you have a single app and need all the scopes _all_ module need on the App Registration or you risk a lot of fun with insufficient scopes.
-
-Instead we recommend registering your own, module-specific service (e.g. `"MyModule.Graph"`) with the exact same settings as the default graph service (see above).
-That way, you can be sure that you have a dedicated connection and any errors about insufficient scopes are at least well earned and not a hard to troubleshoot conflict.
+Find the latest guidance to implementing EntraAuth [in our dedicated docs page for that very topic](docs/building-on-entraauth.md).
