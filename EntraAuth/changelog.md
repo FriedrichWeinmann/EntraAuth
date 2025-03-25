@@ -1,5 +1,10 @@
 ﻿# Changelog
 
+## 1.7.35 (2025-03-25)
+
++ New: New-EntraFilterBuilder - Creates a new OData-Filter construction helper.
++ New: New-EntraServiceSelector - Creates a helper type designed to help make a module implementing EntraAuth more flexible about what EntraAUth service to use.
+
 ## 1.6.33 (2025-03-10)
 
 + New: New-EntraCustomToken - Create a custom token compatible with EntraAuth.
