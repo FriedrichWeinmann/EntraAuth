@@ -92,10 +92,41 @@ $script:_services = @{
 $script:_serviceSelector = New-EntraServiceSelector -DefaultServices $script:_services
 ```
 
-> File 2: Get-CTUser.ps1
+> File 2: Set-CTServiceConnection.ps1
+
+The default services to use are now defined during import - the values of the hashtable we just defined (Here: `Graph` and `Endpoint`).
+Now we need a convenient way for a human user to change those defaults:
+
+```powershell
+function Set-CTServiceConnection {
+    [CmdletBinding()]
+    param (
+        [ArgumentCompleter({ (Get-EntraService).Name })]
+        [string]
+        $Graph,
+
+        [ArgumentCompleter({ (Get-EntraService).Name })]
+        [string]
+        $Mde
+    )
+
+    if ($Graph) {
+        $script:_services.Graph = $Graph
+    }
+    if ($Mde) {
+        $script:_services.MDE = $Mde
+    }
+}
+```
+
+This allows a user to cleanly change the default services to use ... but it does not solve the conflict situation between other _modules_ trying to use our `ContosoTools`.
+We also need to actually use these services yet.
+Moving on to the actual implementation within our commands:
+
+> File 3: Get-CTUser.ps1
 
 This is just one of the many functions our module exposes to the public.
-In its simple form, it will simply return all users in the tenant (we probably want to add filtering in V2, but let's not overcomplicate this example).
+In its simple form, it will return all users in the tenant (we probably want to add filtering in V2, but let's not overcomplicate this example).
 
 ```powershell
 function Get-CTUser {
@@ -114,6 +145,19 @@ function Get-CTUser {
     }
 }
 ```
+
+Let's go through this a bit:
+
+```powershell
+$services = $script:_serviceSelector.GetServiceMap($ServiceMap)
+```
+
+This is the line where the real magic happens:
+
++ It will pick up the default services we defined in File 1, potentially modified by the user through the command in File 2
++ Then it will merge that with any explicitly bound services from `$ServiceMap`
+
+Thus a user can define their default now, without affecting other module's ability to pick their own services (and without those modules interfering with the user's choice).
 
 That's it, our module is now using EntraAuth with flexible services.
 Let's take a look at how this would then be used ...
