@@ -8,12 +8,16 @@
 		This helper class was designed to simplify the creation of OData filters for APIs such as the Microsoft Graph API.
 		Call the ".Add(...)" method to specify filter conditions.
 		
-		There are two ways to do so:
+		There are three ways to do so:
 		A) .Add(property, operator, value)
 		A single property comparison, with a specific operator and value.
 		
 		B) .Add(customFilter)
 		A custom piece of OData filter text.
+
+		C) .Add(filterbuilder)
+		The output of another filterbuilder becomes part of the conditions for this one.
+		This allows building complex, nested filter statements.
 
 		Finally, call ".Get()" to retrieve the full OData filter string or ".GetHeader()" to retrieve the filter header hashtable.
 		
@@ -23,6 +27,12 @@
 		List of valid filter conditions:
 		https://learn.microsoft.com/en-us/graph/filter-query-parameter?tabs=http#operators-and-functions-supported-in-filter-expressions
 	
+	.PARAMETER Logic
+		The logic by which individual filter conditions are merged.
+		Options:
+		- AND (default)
+		- OR
+
 	.EXAMPLE
 		PS C:\> $filter = New-EntraFilterBuilder
 		PS C:\> $filter.Add('displayName', 'eq', 'John Doe')
@@ -32,11 +42,15 @@
 		Will return: "displayName eq 'John Doe' and organization in ('Contoso', 'Fabrikam')"
 	#>
 	[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseShouldProcessForStateChangingFunctions", "")]
-	[OutputType([FilterBuilder])]
+	#%UNCOMMENT%[OutputType([FilterBuilder])]
 	[CmdletBinding()]
-	param ()
+	param (
+		[ValidateSet('AND','OR')]
+		[string]
+		$Logic = 'AND'
+	)
 
 	process {
-		[FilterBuilder]::new()
+		[FilterBuilder]::new($Logic)
 	}
 }

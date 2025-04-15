@@ -59,6 +59,9 @@ Get-ChildItem -Path "$($publishDir.FullName)\EntraAuth\internal\scripts\" -Recur
 	$text += [System.IO.File]::ReadAllText($_.FullName)
 }
 
+# Postprocess Text
+$text = $text -replace '#%UNCOMMENT%'
+
 #region Update the psm1 file & Cleanup
 [System.IO.File]::WriteAllText("$($publishDir.FullName)\EntraAuth\EntraAuth.psm1", ($text -join "`n`n"), [System.Text.Encoding]::UTF8)
 Remove-Item -Path "$($publishDir.FullName)\EntraAuth\internal" -Recurse -Force

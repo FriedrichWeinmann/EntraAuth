@@ -1,18 +1,32 @@
 ﻿class FilterBuilder {
 	[System.Collections.ArrayList]$Entries = @()
 	[System.Collections.ArrayList]$CustomFilter = @()
+	
+	[ValidateSet('AND','OR')][string]$Logic = 'AND'
+
+	FilterBuilder()	{ }
+	FilterBuilder([string]$Logic) {
+		$this.Logic = $Logic
+	}
 
 	[void]Add([string]$Property, [string]$Operator, $Value) {
+		$this.Add($Property, $Operator, $Value, $false)
+	}
+	[void]Add([string]$Property, [string]$Operator, $Value, [bool]$NoQuotes) {
 		$null = $this.Entries.Add(
 			@{
 				Property = $Property
 				Operator = $Operator
-				Value = $Value
+				Value    = $Value
+				NoQuotes = $NoQuotes
 			}
 		)
 	}
 	[void]Add([string]$CustomFilter) {
-		$null = $this.CustomFilter.Add($CustomFilter)
+		$null = $this.Entries.Add($CustomFilter)
+	}
+	[void]Add([FilterBuilder]$NestedFilter) {
+		$null = $this.Entries.Add($NestedFilter)
 	}
 
 	[int]Count() {
@@ -66,25 +80,42 @@ It translates into an OData all(...) logic with the "ne" operator applied.
 	}
 	[string]Get() {
 		$segments = :entries foreach ($entry in $this.Entries) {
+			# Nested Filters
+			if ($entry -is [FilterBuilder]) {
+				'(' + $entry.Get() + ')'
+				continue
+			}
+			# Custom Filters
+			if ($entry -is [string]) {
+				$entry
+				continue
+			}
+
+
+			$quotes = "'"
+			if ($entry.NoQuotes) { $quotes = "" }
 
 			$valueString = $entry.Value -as [string]
 			if ($null -eq $entry.Value) { $valueString = "null" }
-			if ($entry.Value -is [string] -or $entry.Value -is [guid]) {
-				$valueString = "'$($entry.Value)'"
+			if (
+				$entry.Value -is [string] -or
+				$entry.Value -is [guid]
+			) {
+				$valueString = "$($quotes)$($entry.Value)$($quotes)"
 			}
 			if ($entry.Value -is [DateTime]) {
-				$valueString = $entry.Value.ToString('u') -replace ' ','T'
+				$valueString = $entry.Value.ToString('u') -replace ' ', 'T'
 			}
 
 			switch ($entry.Operator) {
 				'eq' {
 					# Case: eq with Wildcard
 					if ($entry.Value -match '\*$' -and $entry.Operator -eq 'eq') {
-						"startswith($($entry.Property), '$($entry.Value.TrimEnd('*'))')"
+						"startswith($($entry.Property), $($quotes)$($entry.Value.TrimEnd('*'))$($quotes))"
 						continue entries
 					}
 					if ($entry.Value -match '^\*' -and $entry.Operator -eq 'eq') {
-						"endswith($($entry.Property), '$($entry.Value.TrimStart('*'))')"
+						"endswith($($entry.Property), $($quotes)$($entry.Value.TrimStart('*'))$($quotes))"
 						continue entries
 					}
 					'{0} eq {1}' -f $entry.Property, $valueString
@@ -93,7 +124,7 @@ It translates into an OData all(...) logic with the "ne" operator applied.
 					'{0} eq {1}' -f $entry.Property, $valueString
 				}
 				'in' {
-					'{0} in ({1})' -f $entry.Property, (@($entry.Value).ForEach{ "'$_'" } -join ', ')
+					'{0} in ({1})' -f $entry.Property, (@($entry.Value).ForEach{ "$($quotes)$_$($quotes)" } -join ', ')
 				}
 				'any' {
 					'{0}/any(x:x eq {1})' -f $entry.Property, $valueString
@@ -111,6 +142,7 @@ It translates into an OData all(...) logic with the "ne" operator applied.
 			else { $segments = $this.CustomFilter }
 		}
 
+		if ($this.Logic -eq 'OR') { return $segments -join ' or ' }
 		return $segments -join ' and '
 	}
 	[hashtable]GetHeader() {
