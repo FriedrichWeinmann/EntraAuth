@@ -141,7 +141,7 @@ function Get-CTUser {
         Assert-EntraConnection -Cmdlet $PSCmdlet -Service $services.Graph
     }
     process {
-        Invoke-EntraRequest -Service $services.Graph
+        Invoke-EntraRequest -Service $services.Graph -Path users
     }
 }
 ```
