@@ -1,5 +1,12 @@
 ﻿# Changelog
 
+## 1.7.39 (2025-04-15)
+
++ Upd: New-EntraFilterBuilder - Now supports both AND and OR logic.
++ Upd: New-EntraFilterBuilder - Now supports adding other filter builders as nested filter.
++ Upd: New-EntraFilterBuilder - Now allows specifying, whether values should be put in quotes.
++ Fix: New-EntraFilterBuilder - does not respect order of conditions for custom filters.
+
 ## 1.7.35 (2025-03-25)
 
 + New: New-EntraFilterBuilder - Creates a new OData-Filter construction helper.
