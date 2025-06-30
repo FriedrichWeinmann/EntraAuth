@@ -22,7 +22,7 @@
 		The url used for the authentication requests to retrieve tokens.
 	
 	.EXAMPLE
-		PS C:\> Connect-ServiceClientSecret -ClientID '<ClientID>' -TenantID '<TenantID>' -ClientSecret $secret
+		PS C:\> Connect-ServiceClientSecret -ClientID '<ClientID>' -TenantID '<TenantID>' -ClientSecret $secret -Resource '<Resource>' -AuthenticationUrl 'https://login.microsoftonline.com'
 	
 		Connects to the specified tenant using the specified client and secret.
 #>
