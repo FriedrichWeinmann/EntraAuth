@@ -129,7 +129,7 @@
 		$uriFinal = $uri + ($paramStrings -join '&')
 		Write-Verbose "Authorize Uri: $uriFinal"
 
-		$redirectTo = 'https://raw.githubusercontent.com/FriedrichWeinmann/MiniGraph/master/nothing-to-see-here.txt'
+		$redirectTo = 'https://raw.githubusercontent.com/FriedrichWeinmann/EntraAuth/master/nothing-to-see-here.txt'
 		if ((Get-Random -Minimum 10 -Maximum 99) -eq 66) {
 			$redirectTo = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
 		}
