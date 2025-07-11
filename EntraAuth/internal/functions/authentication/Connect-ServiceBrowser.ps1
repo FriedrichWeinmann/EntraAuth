@@ -129,7 +129,9 @@
 		$uriFinal = $uri + ($paramStrings -join '&')
 		Write-Verbose "Authorize Uri: $uriFinal"
 
-		$redirectTo = 'https://raw.githubusercontent.com/FriedrichWeinmann/EntraAuth/master/nothing-to-see-here.txt'
+		#$redirectTo = 'https://raw.githubusercontent.com/FriedrichWeinmann/EntraAuth/master/nothing-to-see-here.txt'
+		#$redirectTo = (Join-Path -Path $script:ModuleRoot -ChildPath 'nothing-to-see-here.txt') -replace '\\','/'
+		$redirectTo = "http://localhost:$(Get-Random -Minimum 9800 -Maximum 9999)/"
 		if ((Get-Random -Minimum 10 -Maximum 99) -eq 66) {
 			$redirectTo = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
 		}
@@ -161,14 +163,32 @@ $uriFinal
 			while (-not $task.IsCompleted) {
 				Start-Sleep -Milliseconds 200
 			}
+			$http2 = [System.Net.HttpListener]::new()
+			$http2.Prefixes.Add($redirectTo)
+			$http2.Start()
+
 			$context = $task.Result
 			$context.Response.Redirect($redirectTo)
 			$context.Response.Close()
 			$authorizationCode, $stateReturn, $sessionState = $context.Request.Url.Query -split "&"
+
+			$task2 = $http2.GetContextAsync()
+			while (-not $task2.IsCompleted) {
+				Start-Sleep -Milliseconds 200
+			}
+			$context2 = $task2.Result
+			$bytes = [System.Text.Encoding]::UTF8.GetBytes('Authentication flow completed, you can close the tab now.')
+			$context2.Response.ContentEncoding = [System.Text.Encoding]::UTF8
+			$context2.Response.OutputStream.Write($bytes,0,$bytes.Length)
+			$context2.Response.Close()
 		}
 		finally {
 			$http.Stop()
 			$http.Dispose()
+			if ($http2.IsListening) {
+				$http2.Stop()
+				$http2.Dispose()
+			}
 		}
 
 		if (-not $stateReturn) {

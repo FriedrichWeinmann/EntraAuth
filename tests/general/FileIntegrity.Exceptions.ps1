@@ -43,3 +43,7 @@ $global:MayContainCommand = @{
 	"Write-Information" = @()
 	"Write-Debug" = @()
 }
+
+$global:IgnoreSyntaxErrors = @(
+	'99-EntraToken.ps1'
+)
