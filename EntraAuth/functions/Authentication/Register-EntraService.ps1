@@ -63,8 +63,24 @@
 	
 	.EXAMPLE
 		PS C:\> Register-EntraService -Name Endpoint -ServiceUrl 'https://api.securitycenter.microsoft.com/api' -Resource 'https://api.securitycenter.microsoft.com'
-		
+
 		Registers the defender for endpoint API as a service.
+
+    .EXAMPLE
+        PS C:\> Register-EntraService -Name 'PowerBI' -ServiceUrl 'https://api.powerbi.com/v1.0/myorg' -Resource 'https://analysis.windows.net/powerbi/api' -DefaultScopes @('Dataset.Read.All', 'Report.Read.All') -Header @{ 'Accept' = 'application/json' }
+
+        Registers Power BI REST API service with common read scopes and required headers.
+
+    .EXAMPLE
+        PS C:\> Register-EntraService -Name 'SharePointOnline' -ServiceUrl 'https://%TENANT%.sharepoint.com/_api' -Resource 'https://%TENANT%.sharepoint.com' -Parameters @{ Tenant = 'SharePoint tenant name (e.g., contoso)' } -DefaultScopes @('Sites.Read.All') -Query @{ '$format' = 'json' }
+
+        Registers SharePoint Online REST API with dynamic tenant URL, requiring a tenant parameter and automatically formatting responses as JSON.
+
+    .EXAMPLE
+        PS C:\> Register-EntraService -Name 'CustomCRM' -ServiceUrl 'https://crm.contoso.com/api/v2' -Resource 'api://contoso-crm-app' -NoRefresh -RawOnly -Header @{ 'X-API-Version' = '2.0'; 'Accept' = 'application/json' }
+
+        Registers a custom CRM API that doesn't support refresh tokens and requires raw response handling with custom API versioning headers.
+
 	#>
 	[CmdletBinding()]
 	param (

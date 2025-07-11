@@ -1,5 +1,16 @@
 ﻿# Changelog
 
+## 1.7.40 (2025-06-30)
++ Upd: Register-EntraService - Extra examples on registering EntraServices
++ Upd: Connect-ServiceBrowser - Removed dependency to MiniGraph
++ Fix: Connect-ServiceCertificate - Updated audiance to reflect the updated url endpoint descriped in docs
++ Upd: Connect-ServiceClientSecret - Added -Resource and -AuthenticationUrl to the Example for clarity
++ Upd: Connect-ServiceDeviceCode - Added -Resource and -AuthenticationUrl to the Example for clarity 
++ Upd: Connect-ServiceDeviceCode - Modified Description to reflect it using the Device Code workflow and not just saying Browser authentication.
++ Upd: Connect-ServicePassword - Added -Resource and -AuthenticationUrl to the Example for clarity
++ Upd: Connect-ServiceRefreshToken - Added example of using the ParameterSet Details instead of only having the example for Token ParameterSet
++ Upd: nothing-to-see-here.txt - Copied from MiniGraph repo to remove dependency to a remote repo that is not EntraAuth
+
 ## 1.7.39 (2025-04-15)
 
 + Upd: New-EntraFilterBuilder - Now supports both AND and OR logic.
