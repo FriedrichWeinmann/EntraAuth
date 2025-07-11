@@ -124,6 +124,23 @@
 		- always: Will always show the dialog, forcing interaction.
 		- never: Will never show the dialog. Authentication will fail if interaction is required.
 
+	.PARAMETER Federated
+		Use federated credentials to authenticate.
+		This authentication flow is specific to a given environment and can for example enable a Github Action in a specific repository on a specific branch to authenticate, without needing to provide (and manage) a credential.
+		Some setup is required.
+
+		By default, this command is going to check all provided configurations ("Federation Providers") registered to EntraAuth and use the first that applies.
+		Use "-FederationProvider" to pick a specific one to use.
+		Use "-Assertion" to handle the federated identity provider outside of EntraAuth and simply provide the result for logon.
+
+	.PARAMETER FederationProvider
+		The name of the Federation Provider to use. Overrides the automatic selection.
+		Federation Providers are an EntraAuth concept and used to automatically do what is needed to access and use a Federated Credential, based on its environment.
+		See the documentation on Register-EntraFederationProvider for more details.
+
+	.PARAMETER Assertion
+		The credentials from the federated identity provider to use in an Federated Credentials authentication flow.
+
 	.PARAMETER Service
 		The service to connect to.
 		Individual commands using Invoke-EntraRequest specify the service to use and thus identify the token needed.
@@ -194,6 +211,7 @@
 #>
 	[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseDeclaredVarsMoreThanAssignments", "")]
 	[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidDefaultValueForMandatoryParameter", "")]
+	[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSReviewUnusedParameter", "")]
 	[CmdletBinding(DefaultParameterSetName = 'Browser')]
 	param (
 		[Parameter(Mandatory = $true, ParameterSetName = 'Browser')]
@@ -203,17 +221,19 @@
 		[Parameter(Mandatory = $true, ParameterSetName = 'AppSecret')]
 		[Parameter(Mandatory = $true, ParameterSetName = 'UsernamePassword')]
 		[Parameter(Mandatory = $true, ParameterSetName = 'KeyVault')]
+		[Parameter(Mandatory = $true, ParameterSetName = 'Federated')]
 		[ArgumentCompleter({ 'Graph', 'Azure' })]
 		[string]
 		$ClientID,
 		
 		[Parameter(ParameterSetName = 'Browser')]
-		[Parameter(ParameterSetName = 'DeviceCode')]
+		[Parameter(Mandatory = $true, ParameterSetName = 'DeviceCode')]
 		[Parameter(Mandatory = $true, ParameterSetName = 'Refresh')]
 		[Parameter(Mandatory = $true, ParameterSetName = 'AppCertificate')]
 		[Parameter(Mandatory = $true, ParameterSetName = 'AppSecret')]
 		[Parameter(Mandatory = $true, ParameterSetName = 'UsernamePassword')]
 		[Parameter(Mandatory = $true, ParameterSetName = 'KeyVault')]
+		[Parameter(Mandatory = $true, ParameterSetName = 'Federated')]
 		[string]
 		$TenantID = 'organizations',
 		
@@ -295,6 +315,7 @@
 		$IdentityType = 'ClientID',
 
 		[Parameter(ParameterSetName = 'Identity')]
+		[Parameter(ParameterSetName = 'Federated')]
 		[switch]
 		$FallBackAzAccount,
 
@@ -306,6 +327,36 @@
 		[ValidateSet('Auto', 'Always', 'Never')]
 		[string]
 		$ShowDialog = 'Auto',
+
+		[Parameter(ParameterSetName = 'Federated')]
+		[switch]
+		$Federated,
+
+		[Parameter(ParameterSetName = 'Federated')]
+		[ArgumentCompleter({
+			param($commandName, $parameterName, $wordToComplete, $commandAst, $fakeBoundParameters)
+			foreach ($provider in Get-EntraFederationProvider) {
+				if ($provider.Name -notlike "$wordToComplete*") { continue }
+				$text = $provider.Name
+				if ($text -match '\s') { $text = "'$($provider.Name -replace "'", "''")'" }
+
+				[System.Management.Automation.CompletionResult]::new($text, $text, 'ParameterValue', $provider.Description)
+			}
+		})]
+		[ValidateScript({
+			$providers = (Get-EntraFederationProvider).Name
+			if ($_ -in $providers) { return $true }
+
+			$message = "Unknown Federation Provider! '$_' - known providers: $($providers -join ', ')"
+			Write-Warning $message
+			throw $message
+		})]
+		[string]
+		$FederationProvider,
+
+		[Parameter(ParameterSetName = 'Federated')]
+		[string]
+		$Assertion,
 
 		[ArgumentCompleter({ Get-ServiceCompletion $args })]
 		[ValidateScript({ Assert-ServiceName -Name $_ })]
@@ -414,8 +465,6 @@
 			}
 			#endregion Service Url
 			
-			
-
 			#region Connection
 			:main switch ($PSCmdlet.ParameterSetName) {
 				#region Browser
@@ -609,6 +658,41 @@
 					Write-Verbose "[$serviceName] Connected via Managed Identity ($($token.Scopes -join ', '))"
 				}
 				#endregion Identity
+
+				#region Federated
+				Federated {
+					Write-Verbose "[$serviceName] Connecting via Federated Credential"
+
+					try { $result,$provider = Connect-ServiceFederated @commonParam -Assertion $Assertion -Provider $FederationProvider -ErrorAction Stop }
+					catch {
+						if (-not $FallBackAzAccount) { $PSCmdlet.ThrowTerminatingError($_) }
+
+						try {
+							$newParam = @{}
+							$validParam = $PSCmdlet.MyInvocation.MyCommand.ParameterSets.Where{$_.Name -eq 'AzAccount'}.Parameters.Name
+							foreach ($pair in $PSBoundParameters.GetEnumerator()) {
+								if ($pair.Key -notin $validParam) { continue }
+								$newParam[$pair.Key] = $pair.Value
+							}
+							$newParam.AsAzAccount = $true
+							Connect-EntraService @newParam
+
+							break main # Successfully connected
+						}
+						catch {
+							Write-Warning "Fallback to AzAccount failed: $_"
+						}
+
+						$PSCmdlet.ThrowTerminatingError($_)
+					}
+
+					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $provider, $effectiveServiceUrl, $authUrl)
+					$token = [EntraToken]::new($serviceName, $effectiveServiceUrl, $IdentityID, $IdentityType)
+					$token.SetTokenMetadata($result)
+
+					Write-Verbose "[$serviceName] Connected via Federated Credential ($($token.Scopes -join ', '))"
+				}
+				#endregion Federated
 
 				#region AzAccount
 				AzAccount {

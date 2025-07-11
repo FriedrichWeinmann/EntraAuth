@@ -60,7 +60,7 @@
     }
     $encodedHeader = $jwtHeader | ConvertTo-Json | ConvertTo-Base64
     $claims = @{
-        aud = "$AuthenticationUrl/$TenantID/v2.0"
+        aud = "$AuthenticationUrl/$TenantID/oauth2/v2.0/token"
         exp = ((Get-Date).AddMinutes(5).ToUniversalTime() - (Get-Date -Date '1970-01-01')).TotalSeconds -as [int]
         iss = $ClientID
         jti = "$(New-Guid)"

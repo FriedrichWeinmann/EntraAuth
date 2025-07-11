@@ -4,7 +4,7 @@
 RootModule = 'EntraAuth.psm1'
 
 # Version number of this module.
-ModuleVersion = '1.7.39'
+ModuleVersion = '1.8.46'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -64,6 +64,7 @@ FormatsToProcess = @('EntraAuth.Formats.ps1xml')
 FunctionsToExport = @(
 	'Assert-EntraConnection'
 	'Connect-EntraService'
+	'Get-EntraFederationProvider'
 	'Get-EntraService'
 	'Get-EntraToken'
 	'Import-EntraToken'
@@ -71,7 +72,9 @@ FunctionsToExport = @(
 	'New-EntraCustomToken'
 	'New-EntraFilterBuilder'
 	'New-EntraServiceSelector'
+	'Register-EntraFederationProvider'
 	'Register-EntraService'
+	'Resolve-EntraFederationProvider'
 	'Set-EntraService'
 )
 

@@ -28,9 +28,9 @@
 		The url used for the authentication requests to retrieve tokens.
 	
 	.EXAMPLE
-		PS C:\> Connect-ServiceDeviceCode -ServiceUrl $url -ClientID '<ClientID>' -TenantID '<TenantID>'
+		PS C:\> Connect-ServiceDeviceCode -Resource 'https://graph.microsoft.com' -ClientID '<ClientID>' -TenantID '<TenantID>' -AuthenticationUrl 'https://login.microsoftonline.com'
 	
-		Connects to the specified tenant using the specified client, prompting the user to authorize via Browser.
+		Connects to the specified tenant using the specified client, prompting the user to authorize via Device Code workflow.
 	#>
 	[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", "")]
 	[CmdletBinding()]

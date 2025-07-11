@@ -40,6 +40,9 @@
 	# Workflow: Az.Accounts
 	[string]$ShowDialog
 
+	# Workflow: Federated
+	[FederationProvider]$FederationProvider
+
 	# Workflow: Custom Token
 	[scriptblock]$HeaderCode
 	[hashtable]$Data = @{}
@@ -55,6 +58,16 @@
 		$this.ServiceUrl = $ServiceUrl
 		$this.AuthenticationUrl = $AuthenticationUrl
 		$this.Type = 'ClientSecret'
+	}
+
+	EntraToken([string]$Service, [string]$ClientID, [string]$TenantID, [FederationProvider]$Provider, [string]$ServiceUrl, [string]$AuthenticationUrl) {
+		$this.Service = $Service
+		$this.ClientID = $ClientID
+		$this.TenantID = $TenantID
+		$this.ServiceUrl = $ServiceUrl
+		$this.AuthenticationUrl = $AuthenticationUrl
+		$this.FederationProvider = $Provider
+		$this.Type = 'Federated'
 	}
 	
 	EntraToken([string]$Service, [string]$ClientID, [string]$TenantID, [System.Security.Cryptography.X509Certificates.X509Certificate2]$Certificate, [string]$ServiceUrl, [string]$AuthenticationUrl) {
@@ -219,6 +232,10 @@
 			}
 			AzAccount {
 				$result = Connect-ServiceAzure -Resource $this.Audience -ShowDialog $this.ShowDialog
+				$this.SetTokenMetadata($result)
+			}
+			Federated {
+				$result, $provider = Connect-ServiceFederated @defaultParam -Provider $this.FederationProvider.Name -Assertion $this.FederationProvider.Assertion
 				$this.SetTokenMetadata($result)
 			}
 		}

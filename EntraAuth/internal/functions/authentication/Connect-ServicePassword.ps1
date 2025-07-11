@@ -28,7 +28,7 @@
 		The url used for the authentication requests to retrieve tokens.
     
     .EXAMPLE
-        PS C:\> Connect-ServicePassword -Credential max@contoso.com -ClientID $client -TenantID $tenant -Scopes 'user.read','user.readbasic.all'
+        PS C:\> Connect-ServicePassword -Credential max@contoso.com -ClientID $client -TenantID $tenant -Scopes 'user.read','user.readbasic.all' -Resource 'https://graph.microsoft.com' -AuthenticationUrl 'https://login.microsoftonline.com'
         
         Connect as max@contoso.com with the rights to read user information.
     #>

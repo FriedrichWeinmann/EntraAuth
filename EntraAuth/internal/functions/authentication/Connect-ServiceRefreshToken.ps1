@@ -35,6 +35,12 @@
 		PS C:\> Connect-ServiceRefreshToken -Token $token
 		
 		Connect with the refresh token provided previously.
+
+	.EXAMPLE
+        PS C:\> Connect-ServiceRefreshToken -RefreshToken $refreshToken -TenantID '<TenantID>' -ClientID '<ClientID>' -Resource 'https://graph.microsoft.com' -Scopes @('User.Read', 'Mail.Read') -AuthenticationUrl 'https://login.microsoftonline.com'
+        
+        Connect using specific refresh token details with custom scopes for Microsoft Graph.
+		
 	#>
 	[CmdletBinding()]
 	param (

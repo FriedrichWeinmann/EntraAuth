@@ -1,5 +1,15 @@
 ﻿# Changelog
 
+## 1.8.46 (2025-07-11)
+
++ New: Register-EntraFederationProvider - Register logic to automatically retrieve the assertion needed in a Federated Credential authentication flow.
++ New: Get-EntraFederationProvider - Lists all registered Federation Providers.
++ New: Resolve-EntraFederationProvider - Resolves which Federation Provider to use to calculate the Federation Credentials to use.
++ Upd: Connect-EntraService - now supports Federated Credentials flow
++ Upd: Connect-EntraService - AuthorizationCode flows no longer redirects to github at the end
++ Upd: Documentation update to provide better examples to many commands (#42; Many thanks, @Mynster9361)
++ Fix: Connect-EntraService - DeviceCode flow did not require TenantID when it is actually necessary
+
 ## 1.7.39 (2025-04-15)
 
 + Upd: New-EntraFilterBuilder - Now supports both AND and OR logic.
