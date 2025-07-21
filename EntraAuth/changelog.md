@@ -1,5 +1,9 @@
 ﻿# Changelog
 
+## 1.8.50 (2025-07-21)
+
++ Fix: Federation Provider EntraMSI - unable to resolve Federation Provider
+
 ## 1.8.49 (2025-07-21)
 
 + New: Federation Provider EntraMSI - added a default federation provider for Managed Identities in Entra.

@@ -44,3 +44,4 @@ $param = @{
 		(Connect-EntraService -Identity -Resource 'api://AzureADTokenExchange').AccessToken
 	}
 }
+Register-EntraFederationProvider @param
