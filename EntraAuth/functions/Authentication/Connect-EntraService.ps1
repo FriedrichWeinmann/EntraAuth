@@ -25,6 +25,10 @@
 		Use an interactive logon in your default browser.
 		This is the default logon experience.
 
+	.PARAMETER RedirectUri
+		The Redirect URI to send with the request.
+		May be different from the actual local port you want to listen on (e.g. when redirecting to an alternative name on top of localhost).
+
 	.PARAMETER BrowserMode
 		How the browser used for authentication is selected.
 		Options:
@@ -247,6 +251,10 @@
 		[Parameter(ParameterSetName = 'Browser')]
 		[switch]
 		$Browser,
+
+		[Parameter(ParameterSetName = 'Browser')]
+		[string]
+		$RedirectUri,
 
 		[Parameter(ParameterSetName = 'Browser')]
 		[ValidateSet('Auto', 'PrintLink')]
@@ -473,13 +481,14 @@
 					if (-not $Scopes) { $scopesToUse = $serviceObject.DefaultScopes }
 
 					Write-Verbose "[$serviceName] Connecting via Browser ($($scopesToUse -join ', '))"
-					try { $result = Connect-ServiceBrowser @commonParam -SelectAccount -Scopes $scopesToUse -NoReconnect:$($serviceObject.NoRefresh) -BrowserMode $BrowserMode -ErrorAction Stop }
+					try { $result = Connect-ServiceBrowser @commonParam -SelectAccount -Scopes $scopesToUse -NoReconnect:$($serviceObject.NoRefresh) -BrowserMode $BrowserMode -RedirectUri $RedirectUri -ErrorAction Stop }
 					catch {
 						Write-Warning "[$serviceName] Failed to connect: $_"
 						$PSCmdlet.ThrowTerminatingError($_)
 					}
 					
 					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $effectiveServiceUrl, $false, $authUrl)
+					$token.RedirectUri = $RedirectUri
 					$token.SetTokenMetadata($result)
 					Write-Verbose "[$serviceName] Connected via Browser ($($token.Scopes -join ', '))"
 				}

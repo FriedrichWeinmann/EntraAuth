@@ -34,6 +34,10 @@
 	.PARAMETER Resource
 		The resource owning the api permissions / scopes requested.
 
+	.PARAMETER RedirectUri
+		The Redirect URI to send with the request.
+		May be different from the actual local port you want to listen on (e.g. when redirecting to an alternative name on top of localhost).
+
 	.PARAMETER Browser
 		The path to the browser to use for the authentication flow.
 		Provide the full path to the executable.
@@ -83,6 +87,10 @@
 		[int]
 		$LocalPort = 8080,
 
+		[AllowEmptyString()]
+		[string]
+		$RedirectUri,
+
 		[string]
 		$Browser,
 
@@ -102,7 +110,8 @@
 		Add-Type -AssemblyName System.Web
 		if (-not $Scopes) { $Scopes = @('.default') }
 
-		$redirectUri = "http://localhost:$LocalPort"
+		$localUri = "http://localhost:$LocalPort"
+		if (-not $RedirectUri) { $RedirectUri = $localUri }
 		$actualScopes = $Scopes | Resolve-ScopeName -Resource $Resource
 
 		if (-not $NoReconnect) {
@@ -114,7 +123,7 @@
 		$parameters = @{
 			client_id     = $ClientID
 			response_type = 'code'
-			redirect_uri  = $redirectUri
+			redirect_uri  = $RedirectUri
 			response_mode = 'query'
 			scope         = $actualScopes -join ' '
 			state         = $state
@@ -138,7 +147,8 @@
 		
 		# Start local server to catch the redirect
 		$http = [System.Net.HttpListener]::new()
-		$http.Prefixes.Add("$redirectUri/")
+		$http.Prefixes.Add(("$RedirectUri/" -replace '//$', '/'))
+		if ($localUri -ne $RedirectUri) { $http.Prefixes.Add(("$localUri/" -replace '//$', '/')) }
 		try { $http.Start() }
 		catch { Invoke-TerminatingException -Cmdlet $PSCmdlet -Message "Failed to create local http listener on port $LocalPort. Use -LocalPort to select a different port. $_" -Category OpenError }
 
@@ -211,7 +221,7 @@ $uriFinal
 			client_id    = $ClientID
 			scope        = $actualScopes -join " "
 			code         = $actualAuthorizationCode
-			redirect_uri = $redirectUri
+			redirect_uri = $RedirectUri
 			grant_type   = 'authorization_code'
 		}
 		$uri = "$AuthenticationUrl/$TenantID/oauth2/v2.0/token"

@@ -23,6 +23,9 @@
 	
 	[string]$IdentityID
 	[string]$IdentityType
+
+	# Workflow: Browser
+	[string]$RedirectUri
 	
 	# Workflow: Client Secret
 	[System.Security.SecureString]$ClientSecret
@@ -212,7 +215,7 @@
 					return
 				}
 
-				$result = Connect-ServiceBrowser @defaultParam -SelectAccount
+				$result = Connect-ServiceBrowser @defaultParam -SelectAccount -RedirectUri $this.RedirectUri
 				$this.SetTokenMetadata($result)
 			}
 			Refresh {

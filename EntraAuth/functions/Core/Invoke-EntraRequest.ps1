@@ -29,6 +29,10 @@
 
 	.PARAMETER Header
 		Any additional headers to include on top of authentication and content-type.
+
+	.PARAMETER ContentType
+		Specify the content-type of this request.
+		Equivalent to specifying it as a header entry, but added as dedicated parameter for user convenience.
 	
 	.PARAMETER Service
 		Which service to execute against.
@@ -74,6 +78,9 @@
 
 		[hashtable]
 		$Header = @{},
+
+		[string]
+		$ContentType,
 		
 		[ArgumentCompleter({ Get-ServiceCompletion $args })]
 		[ValidateScript({ Assert-ServiceName -Name $_ -IncludeTokens })]
@@ -129,6 +136,7 @@
 		}
 		
 		$serviceObject = $script:_EntraEndpoints.$($tokenObject.Service)
+		if ($ContentType) { $Header['Content-Type'] = $ContentType }
 	}
 	process {
 		$parameters = @{
