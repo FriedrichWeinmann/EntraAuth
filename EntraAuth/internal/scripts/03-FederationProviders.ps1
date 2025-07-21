@@ -28,3 +28,19 @@ https://docs.github.com/en/actions/how-tos/writing-workflows/choosing-what-your-
 	}
 }
 Register-EntraFederationProvider @param
+
+$param = @{
+	Name = 'EntraMSI'
+	Description = 'Authenticate as the Managed Identity in the current context.'
+	Priority = 20
+	Test = {
+		try {
+			$null = Connect-EntraService -Identity -Resource 'api://AzureADTokenExchange' -ErrorAction Stop
+			$true
+		}
+		catch { $false }
+	}
+	code = {
+		(Connect-EntraService -Identity -Resource 'api://AzureADTokenExchange').AccessToken
+	}
+}

@@ -1,5 +1,11 @@
 ﻿# Changelog
 
+## 1.8.49 (2025-07-21)
+
++ New: Federation Provider EntraMSI - added a default federation provider for Managed Identities in Entra.
++ Upd: Invoke-EntraRequest - added parameter `-ContentType`
++ Upd: Connect-EntraService - now supports custom RedirectUris for AuthorizationCode flow
+
 ## 1.8.46 (2025-07-11)
 
 + New: Register-EntraFederationProvider - Register logic to automatically retrieve the assertion needed in a Federated Credential authentication flow.
