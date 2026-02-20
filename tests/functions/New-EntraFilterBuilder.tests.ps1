@@ -55,6 +55,6 @@
 
 		$filterBuilder.Add('(abc eq 42)')
 
-		$filterBuilder.Get() | Should -Be "enabled eq True and (name eq 'Fred' or name eq 'Max') and (abc eq 42)"
+		$filterBuilder.Get() | Should -Be "enabled eq True and (name eq 'Fred' or name eq 'Max') and ((abc eq 42))"
 	}
 }
