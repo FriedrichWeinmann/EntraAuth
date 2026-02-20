@@ -87,7 +87,7 @@ It translates into an OData all(...) logic with the "ne" operator applied.
 			}
 			# Custom Filters
 			if ($entry -is [string]) {
-				$entry
+				'(' + $entry + ')'
 				continue
 			}
 

@@ -696,7 +696,6 @@
 					}
 
 					$token = [EntraToken]::new($serviceName, $ClientID, $TenantID, $provider, $effectiveServiceUrl, $authUrl)
-					$token = [EntraToken]::new($serviceName, $effectiveServiceUrl, $IdentityID, $IdentityType)
 					$token.SetTokenMetadata($result)
 
 					Write-Verbose "[$serviceName] Connected via Federated Credential ($($token.Scopes -join ', '))"

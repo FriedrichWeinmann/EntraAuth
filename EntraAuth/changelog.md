@@ -1,5 +1,10 @@
 ﻿# Changelog
 
+## 1.8.52 (2026-02-20)
+
++ Fix: Connect-EntraService - Federated Credentials fail to refresh the token correctly
++ Fix: Filter Builder - custom filter conditions might not be evaluated correctly, if they contain multiple clauses.
+
 ## 1.8.50 (2025-07-21)
 
 + Fix: Federation Provider EntraMSI - unable to resolve Federation Provider
