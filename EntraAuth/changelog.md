@@ -1,5 +1,10 @@
 ﻿# Changelog
 
+## 1.8.54 (2026-06-06)
+
++ New: Service for connecting to the Log Analytics Api
++ Upd: Invoke-EntraRequest - added integrated support for delta request
+
 ## 1.8.52 (2026-02-20)
 
 + Fix: Connect-EntraService - Federated Credentials fail to refresh the token correctly
