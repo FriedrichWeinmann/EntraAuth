@@ -60,3 +60,15 @@ $azureKeyVaultCfg = @{
 	}
 }
 Register-EntraService @azureKeyVaultCfg
+
+$logAnalyticsCfg = @{
+	Name          = 'LogAnalytics'
+	ServiceUrl    = 'https://api.loganalytics.azure.com'
+	Resource      = 'https://api.loganalytics.io'
+	DefaultScopes = @()
+	HelpUrl       = 'https://docs.microsoft.com/en-us/azure/azure-monitor/logs/api/overview'
+	Header        = @{
+		'Content-Type' = 'application/json'
+	}
+}
+Register-EntraService @logAnalyticsCfg
