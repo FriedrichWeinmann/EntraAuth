@@ -1,5 +1,9 @@
 ﻿# Changelog
 
+## 1.8.55 (2026-06-08)
+
++ Fix: Service: Azure Log Analytics not registered correctly.
+
 ## 1.8.54 (2026-06-06)
 
 + New: Service for connecting to the Log Analytics Api
