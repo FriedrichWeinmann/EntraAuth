@@ -71,4 +71,4 @@ $logAnalyticsCfg = @{
 		'Content-Type' = 'application/json'
 	}
 }
-Register-EntraService @azureCfg
+Register-EntraService @logAnalyticsCfg
