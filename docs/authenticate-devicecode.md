@@ -22,9 +22,9 @@ In the follow up menu we now need to configure a Redirect Uri:
 
 All we need to do now, is to add "http://localhost" and select "configure".
 
-After adding the platform, we need to scroll to the bottom and enable "Allow public client flows":
+After adding the platform, we need to switch to the section `Settings` and enable "Allow public client flows":
 
-![The bottom part of the Authentication configuration menu is showing, the section "Allow public client flows" has been enabled and highlighted, the save button is blue and should be clicked](pictures/02-04-AdvancedSettings.png)
+![The settings of the Authentication configuration menu is showing, the section "Allow public client flows" has been enabled and highlighted, the save button is blue and should be clicked](pictures/02-04-AdvancedSettings.png)
 
 Once enabled and saved, we are good to go.
 
