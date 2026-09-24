@@ -1,5 +1,9 @@
 ﻿# Changelog
 
+## 1.8.56 (2026-09-24)
+
++ Fix: Invoke-EntraRequest - fails json conversion if on error the API does not return json error message details
+
 ## 1.8.55 (2026-06-08)
 
 + Fix: Service: Azure Log Analytics not registered correctly.
