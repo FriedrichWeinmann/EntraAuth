@@ -202,7 +202,8 @@
 				$failure = $_
 
 				if ($_.ErrorDetails.Message) {
-					$details = $_.ErrorDetails.Message | ConvertFrom-Json
+					try { $details = $_.ErrorDetails.Message | ConvertFrom-Json -ErrorAction Stop }
+					catch { $details = $_.ErrorDetails.Message }
 					if ($details.Error.Code -eq 'TooManyRequests') {
 						Write-Verbose "Throttling: $($details.error.message)"
 						$delay = 1 + ($details.error.message -replace '^.+ (\d+) .+$', '$1' -as [int])
