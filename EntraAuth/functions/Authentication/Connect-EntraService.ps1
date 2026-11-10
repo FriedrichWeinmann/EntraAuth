@@ -142,6 +142,11 @@
 		Federation Providers are an EntraAuth concept and used to automatically do what is needed to access and use a Federated Credential, based on its environment.
 		See the documentation on Register-EntraFederationProvider for more details.
 
+	.PARAMETER FederatedParameters
+		Additional parameters to provide to a FederationProvider.
+		In case a specific provider needs extra data to operate as desired.
+		For example, the EntraMSI provider can receive "IdentityID" and "IdentityType" to support user-assigned managed identities.
+
 	.PARAMETER Assertion
 		The credentials from the federated identity provider to use in an Federated Credentials authentication flow.
 
@@ -361,6 +366,10 @@
 		})]
 		[string]
 		$FederationProvider,
+
+		[Parameter(ParameterSetName = 'Federated')]
+		[hashtable]
+		$FederatedParameters = @{},
 
 		[Parameter(ParameterSetName = 'Federated')]
 		[string]
@@ -672,7 +681,7 @@
 				Federated {
 					Write-Verbose "[$serviceName] Connecting via Federated Credential"
 
-					try { $result,$provider = Connect-ServiceFederated @commonParam -Assertion $Assertion -Provider $FederationProvider -ErrorAction Stop }
+					try { $result,$provider = Connect-ServiceFederated @commonParam -Assertion $Assertion -Provider $FederationProvider -Parameters $FederatedParameters -ErrorAction Stop }
 					catch {
 						if (-not $FallBackAzAccount) { $PSCmdlet.ThrowTerminatingError($_) }
 
