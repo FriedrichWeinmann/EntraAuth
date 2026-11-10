@@ -34,9 +34,16 @@
 	.PARAMETER Test
 		A piece of code used to test, whether the Federation Provider can be used in the current situation.
 		This is used when trying to automatically detect, which provider to use.
+		Code should never throw exceptions.
+
+		The scriptblock will receive a single argument - a hashtable with potential parameters to use for the test (and later execution).
+		This argument may be $null, an empty hashtable, or contain parameters for another provider entirely.
 	
 	.PARAMETER Code
 		Code that generates a JWT token used as an Assertion for the Entra authentication, essentially serving as its secret.
+
+		The scriptblock will receive a single argument - a hashtable with potential parameters to use for the test (and later execution).
+		This argument may be $null, an empty hashtable, or contain parameters for another provider entirely.
 	
 	.EXAMPLE
 		PS C:\> Register-EntraFederationProvider -Name GithubAction -Priority 10 -Description 'For use within a Github Action. Remember to configure your workflow to use the "id-token: write" permission' -Test $test -Code $authCode

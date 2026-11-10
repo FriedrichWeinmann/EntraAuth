@@ -12,6 +12,13 @@
 	
 	.PARAMETER Exclude
 		The Federation Provider to skip.
+
+	.PARAMETER Parameters
+		Additional parameters to provide to a FederationProvider.
+		In case a specific provider needs extra data to operate as desired.
+		For example, the EntraMSI provider can receive "IdentityID" and "IdentityType" to support user-assigned managed identities.
+
+		ALL providers receive the data, should only use their own needed parameters and handle incomplete parameters gracefully.
 	
 	.EXAMPLE
 		PS C:\> Resolve-EntraFederationProvider
@@ -32,13 +39,22 @@
 			}
 		})]
 		[string[]]
-		$Exclude
+		$Exclude,
+
+		[AllowNull()]
+		[hashtable]
+		$Parameters
 	)
+	begin {
+		if ($null -eq $Parameters) {
+			$Parameters = @{}
+		}
+	}
 	process {
 		foreach ($provider in Get-EntraFederationProvider | Sort-Object Priority) {
 			if ($provider.Name -in $Exclude) { continue }
 
-			if (& $provider.Test) { return $provider }
+			if (& $provider.Test $Parameters) { return $provider }
 		}
 	}
 }

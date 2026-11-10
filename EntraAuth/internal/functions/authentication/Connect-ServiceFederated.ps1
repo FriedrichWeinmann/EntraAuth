@@ -19,6 +19,11 @@
 		The name of the provider to use.
 		Overrides auto-selection if provided.
 
+	.PARAMETER Parameters
+		Additional parameters to provide to a FederationProvider.
+		In case a specific provider needs extra data to operate as desired.
+		For example, the EntraMSI provider can receive "IdentityID" and "IdentityType" to support user-assigned managed identities.
+
 	.PARAMETER Assertion
 		An externally provided assertion from the federated authentication provider.
 		This skips the internal assertion resolution process and moves straight to the authentication to Entra
@@ -50,6 +55,10 @@
 		[string]
 		$Provider,
 
+		[AllowNull()]
+		[hashtable]
+		$Parameters,
+
 		[AllowEmptyString()]
 		[string]
 		$Assertion,
@@ -58,18 +67,23 @@
 		[string]
 		$AuthenticationUrl
 	)
+	begin {
+		if ($null -eq $Parameters) {
+			$Parameters = @{}
+		}
+	}
 	process {
 		$providerObject = $null
 		$myAssertion = $Assertion
 		if (-not $myAssertion) {
 			if ($Provider) { $providerObject = $script:_FederationProviders[$Provider] }
-			else { $providerObject = Resolve-EntraFederationProvider }
+			else { $providerObject = Resolve-EntraFederationProvider -Parameters $Parameters }
 
 			if (-not $providerObject) {
 				Invoke-TerminatingException -Cmdlet $PSCmdlet -Category AuthenticationError -Message "Unable to find an applicable Federation Provider! Ensure you have a Federation Provider registered and are running in an environment where detection can work."
 			}
 
-			try { $myAssertion = & $providerObject.Code }
+			try { $myAssertion = & $providerObject.Code $Parameters }
 			catch { Invoke-TerminatingException -Cmdlet $PSCmdlet -ErrorRecord $_ -Message "Failed to access a token from the federated identity provider! $_" }
 		}
 

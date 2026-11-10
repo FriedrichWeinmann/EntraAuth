@@ -1,5 +1,10 @@
 ﻿# Changelog
 
+## 1.8.58 (2026-11-10)
+
++ Upd: Connect-EntraService - added `-FederatedParameters` parameter to pass parameters to federation providers
++ Upd: Federation Provider EntraMSI - added support for User-Defined Managed Identities. Provide Federated Parameters: IdentityID and IdentityType.
+
 ## 1.8.56 (2026-09-24)
 
 + Fix: Invoke-EntraRequest - fails json conversion if on error the API does not return json error message details
